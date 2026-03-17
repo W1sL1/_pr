@@ -1,17 +1,18 @@
-﻿  Source.cpp
-C:\_pr\sd3D\Source.cpp(56,17): warning C4244: инициализация: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(50,23): warning C4244: return: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(57,19): warning C4244: return: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(63,19): warning C4244: return: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(66,23): warning C4244: return: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(72,19): warning C4244: return: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(76,23): warning C4244: return: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(159,23): warning C4244: инициализация: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(181,23): warning C4244: =: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(263,46): warning C4244: аргумент: преобразование "int" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(269,46): warning C4244: аргумент: преобразование "int" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(276,41): warning C4244: аргумент: преобразование "int" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(275,49): warning C4244: аргумент: преобразование "int" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(282,45): warning C4244: аргумент: преобразование "int" в "float", возможна потеря данных
-C:\_pr\sd3D\Source.cpp(281,49): warning C4244: аргумент: преобразование "int" в "float", возможна потеря данных
+﻿  Source.c
+C:\_pr\sd3D\Source.c(50,23): warning C4244: return: преобразование "double" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(57,16): warning C4244: return: преобразование "double" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(63,16): warning C4244: return: преобразование "double" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(66,23): warning C4244: return: преобразование "double" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(72,16): warning C4244: return: преобразование "double" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(76,23): warning C4244: return: преобразование "double" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(56,19): warning C4244: инициализация: преобразование "double" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(181,19): warning C4244: =: преобразование "double" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(159,25): warning C4244: инициализация: преобразование "double" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(263,46): warning C4244: функция: преобразование "int" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(269,46): warning C4244: функция: преобразование "int" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(275,49): warning C4244: функция: преобразование "int" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(276,41): warning C4244: функция: преобразование "int" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(281,49): warning C4244: функция: преобразование "int" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(282,45): warning C4244: функция: преобразование "int" в "float", возможна потеря данных
+C:\_pr\sd3D\Source.c(433,21): warning C4113: "void (__cdecl *)()" отличается в списках параметров от "void (__cdecl *)(void)"
   sd3D.vcxproj -> C:\_pr\sd3D\x64\Debug\sd3D.exe

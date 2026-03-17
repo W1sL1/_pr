@@ -3,147 +3,101 @@
 #include <stdlib.h>
 #include <string.h>
 #define MAX_N 24
-typedef int my_bool;
+typedef int my_bool; //error 
 #define true 1
 #define false 0
 typedef struct {int x;int y;} Point;
 //size  +fig  fig alredy
 int N; int L; int K;       
-// Изначальные фигуры     // Маска доски: true - клетка занята или под боем, false - свободна
-Point initial[MAX_N];     my_bool board[MAX_N][MAX_N];
-// Текущее решение (все фигуры: начальные + новые)       // Счетчик найденных решений
-Point solution[MAX_N];                                        int solution_count = 0;     FILE* output_file;
-//aka horse 
+//orig fig            //mask of boat: true - busy cell, false - free cell
+Point initial[MAX_N]; my_bool board[MAX_N][MAX_N];
+//(all fig: orig + new)   
+Point solution[MAX_N];   int solution_count = 0;  FILE* output_file;
+//knight=horse 
 const int knight_dx[] = { -2, -1, 1, 2, 2, 1, -1, -2 };
 const int knight_dy[] = { 1, 2, 2, 1, -1, -2, -2, -1 };
-//aka ferz 
+//queen=ferz 
 const int queen_dx[] = { -1, -1, 0, 1, 1, 1, 0, -1 };
 const int queen_dy[] = { 0, 1, 1, 1, 0, -1, -1, -1 };
 //chek point on boat 
 my_bool is_valid(int x, int y) {
     return x >= 0 && x < N && y >= 0 && y < N;
 }
-// Функция атаки магараджей из точки (x, y)
+//from (x, y)
 void attack_from(int x, int y, my_bool temp_board[MAX_N][MAX_N], my_bool add) {
-    // Атака как конь
+    //knight attack
     for (int i = 0; i < 8; i++) {
-        int nx = x + knight_dx[i];
-        int ny = y + knight_dy[i];
-        if (is_valid(nx, ny)) {
-            temp_board[nx][ny] = temp_board[nx][ny] || add;
-        }
+        int nx = x + knight_dx[i]; int ny = y + knight_dy[i];
+        if (is_valid(nx, ny)) temp_board[nx][ny] = temp_board[nx][ny] || add;
     }
-
-    // Атака как ферзь (по всем направлениям)
+    //queen attack
     for (int dir = 0; dir < 8; dir++) {
         for (int step = 1; step < N; step++) {
-            int nx = x + queen_dx[dir] * step;
-            int ny = y + queen_dy[dir] * step;
+            int nx = x + queen_dx[dir] * step; int ny = y + queen_dy[dir] * step;
             if (!is_valid(nx, ny)) break;
             temp_board[nx][ny] = temp_board[nx][ny] || add;
         }
     }
-
-    // Сама клетка тоже считается занятой/под боем
+    //this cell is busy too 
     temp_board[x][y] = temp_board[x][y] || add;
 }
-
-// Функция для инициализации доски с учетом начальных фигур
 void init_board() {
-    // Очищаем доску
+    //clean boat
     memset(board, 0, sizeof(board));
-
-    // Добавляем все начальные фигуры
+    //add orig fig
     for (int i = 0; i < K; i++) {
-        int x = initial[i].x;
-        int y = initial[i].y;
-
-        // Проверяем, что начальные фигуры не бьют друг друга
-        // (по условию задачи они уже размещены корректно, но проверим на всякий случай)
-        if (board[x][y]) {
-            printf("Error: Initial pieces attack each other!\n");
-            exit(1);
-        }
-
-        // Добавляем фигуру и её атаку
+        int x = initial[i].x; int y = initial[i].y;
+        if (board[x][y]) {printf("Error: Initial pieces attack each other!\n");exit(1);}
+        //add fig and attack
         attack_from(x, y, board, true);
     }
 }
-
-// Проверка, можно ли поставить фигуру в клетку (x, y)
+//check
 my_bool can_place(int x, int y) {
-    return !board[x][y]; // Клетка должна быть свободна и не под боем
+    return !board[x][y]; 
 }
-
-// Основная рекурсивная функция для размещения фигур
+//recurs
 void place_pieces(int placed, int start_x, int start_y) {
-    // Если разместили все L фигур
     if (placed == L) {
-        // Выводим решение
         for (int i = 0; i < K + L; i++) {
             fprintf(output_file, "(%d,%d)", solution[i].x, solution[i].y);
-            if (i < K + L - 1) {
-                fprintf(output_file, " ");
-            }
+            if (i < K + L - 1) fprintf(output_file, " ");
         }
-        fprintf(output_file, "\n");
-        solution_count++;
+        fprintf(output_file, "\n"); solution_count++;
         return;
     }
-
-    // Перебираем все клетки для размещения следующей фигуры
-    // Начинаем с (start_x, start_y) для избежания повторений
+    //begin (start_x, start_y), enum all cells
     for (int x = start_x; x < N; x++) {
         int y_start = (x == start_x) ? start_y : 0;
         for (int y = y_start; y < N; y++) {
-            // Проверяем, можно ли поставить фигуру
+            //check
             if (can_place(x, y)) {
-                // Создаем временную копию доски
+                //temp copy of boat 
                 my_bool temp_board[MAX_N][MAX_N];
                 memcpy(temp_board, board, sizeof(board));
-
-                // Добавляем новую фигуру
+                //plus new fig 
                 attack_from(x, y, board, true);
-
-                // Сохраняем фигуру в решение
+                //save fig in solution 
                 solution[K + placed].x = x;
                 solution[K + placed].y = y;
-
-                // Рекурсивно размещаем следующие фигуры
-                // Следующая фигура может быть на той же строке, но с большей колонкой
-                if (y + 1 < N) {
-                    place_pieces(placed + 1, x, y + 1);
-                }
-                else {
-                    place_pieces(placed + 1, x + 1, 0);
-                }
-
-                // Восстанавливаем доску
+                // recurse add next figs 
+                if (y + 1 < N) place_pieces(placed + 1, x, y + 1);
+                else place_pieces(placed + 1, x + 1, 0);
+                //hill boat (restore)
                 memcpy(board, temp_board, sizeof(board));
             }
         }
     }
 }
-
 int main() {
-    // Открываем входной файл
     FILE* input_file = fopen("input.txt", "r");
-    if (!input_file) {
-        printf("Error: Cannot open input.txt\n");
-        return 1;
-    }
-
-    // Читаем N, L, K
+    if (!input_file) {printf("Error: Cannot open input.txt\n");return 1;}
     fscanf(input_file, "%d %d %d", &N, &L, &K);
-
-    // Проверяем ограничения
     if (N < 1 || N > MAX_N || K < 0 || K > N * N || L < 0 || L > N * N - K) {
         printf("Error: Invalid input parameters\n");
-        fclose(input_file);
-        return 1;
+        fclose(input_file); return 1;
     }
-
-    // Читаем начальные фигуры
+    //read orig fig
     for (int i = 0; i < K; i++) {
         fscanf(input_file, "%d %d", &initial[i].x, &initial[i].y);
         if (initial[i].x < 0 || initial[i].x >= N || initial[i].y < 0 || initial[i].y >= N) {
@@ -153,22 +107,13 @@ int main() {
         }
         solution[i] = initial[i];
     }
-
     fclose(input_file);
-
-    // Инициализируем доску
     init_board();
-
-    // Открываем выходной файл
     output_file = fopen("output.txt", "w");
-    if (!output_file) {
-        printf("Error: Cannot open output.txt\n");
-        return 1;
-    }
-
-    // Запускаем рекурсивный поиск
+    if (!output_file) {printf("Error: Cannot open output.txt\n");return 1;}
+    //start recurse search 
     if (L == 0) {
-        // Если не нужно добавлять фигуры, просто выводим начальную конфигурацию
+        //if not necessary add figs, print start config 
         if (K > 0) {
             for (int i = 0; i < K; i++) {
                 fprintf(output_file, "(%d,%d)", solution[i].x, solution[i].y);
@@ -183,16 +128,8 @@ int main() {
             //nothing on board 
         }
     }
-    else {
-        place_pieces(0, 0, 0);
-    }
-
-    // Если решений не найдено
-    if (solution_count == 0) {
-        fprintf(output_file, "no solutions\n");
-    }
-
+    else place_pieces(0, 0, 0);
+    if (solution_count == 0) fprintf(output_file, "no solutions\n");
     fclose(output_file);
-
     return 0;
 }
