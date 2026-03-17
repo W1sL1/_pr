@@ -1,0 +1,74 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\_pr\\tp4.1\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{EAB78BCE-0851-4504-AA7D-3BBC29A33F42}|4.1.vcxproj|C:\\_pr\\tp4.1\\Source2.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{EAB78BCE-0851-4504-AA7D-3BBC29A33F42}|4.1.vcxproj|solutionrelative:Source2.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EAB78BCE-0851-4504-AA7D-3BBC29A33F42}|4.1.vcxproj|C:\\_pr\\tp4.1\\Source1.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{EAB78BCE-0851-4504-AA7D-3BBC29A33F42}|4.1.vcxproj|solutionrelative:Source1.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EAB78BCE-0851-4504-AA7D-3BBC29A33F42}|4.1.vcxproj|C:\\_pr\\tp4.1\\Source.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{EAB78BCE-0851-4504-AA7D-3BBC29A33F42}|4.1.vcxproj|solutionrelative:Source.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Source.cpp",
+              "DocumentMoniker": "C:\\_pr\\tp4.1\\Source.cpp",
+              "RelativeDocumentMoniker": "Source.cpp",
+              "ToolTip": "C:\\_pr\\tp4.1\\Source.cpp",
+              "RelativeToolTip": "Source.cpp",
+              "ViewState": "AgIAAAEAAAAAAAAAAAAswAQAAABFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-02-24T13:15:54.165Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Source1.cpp",
+              "DocumentMoniker": "C:\\_pr\\tp4.1\\Source1.cpp",
+              "RelativeDocumentMoniker": "Source1.cpp",
+              "ToolTip": "C:\\_pr\\tp4.1\\Source1.cpp",
+              "RelativeToolTip": "Source1.cpp",
+              "ViewState": "AgIAALIAAAAAAAAAAAAmwLkAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-02-24T13:15:45.965Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Source2.c",
+              "DocumentMoniker": "C:\\_pr\\tp4.1\\Source2.c",
+              "RelativeDocumentMoniker": "Source2.c",
+              "ToolTip": "C:\\_pr\\tp4.1\\Source2.c",
+              "RelativeToolTip": "Source2.c",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAGoAAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
+              "WhenOpened": "2026-02-17T22:07:14.958Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
