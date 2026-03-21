@@ -47,7 +47,7 @@ void init_board() {
     //add orig fig
     for (int i = 0; i < K; i++) {
         int x = initial[i].x; int y = initial[i].y;
-        if (board[x][y]) {printf("Error: Initial pieces attack each other!\n");exit(1);}
+        if (board[x][y]) {printf("Initial pieces attack each other\n");exit(1);}
         //add fig and attack
         attack_from(x, y, board, true);
     }
@@ -91,17 +91,17 @@ void place_pieces(int placed, int start_x, int start_y) {
 }
 int main() {
     FILE* input_file = fopen("input.txt", "r");
-    if (!input_file) {printf("Error: Cannot open input.txt\n");return 1;}
+    if (!input_file) {printf("Cannot open input.txt\n");return 1;}
     fscanf(input_file, "%d %d %d", &N, &L, &K);
     if (N < 1 || N > MAX_N || K < 0 || K > N * N || L < 0 || L > N * N - K) {
-        printf("Error: Invalid input parameters\n");
+        printf("Invalid input parameters\n");
         fclose(input_file); return 1;
     }
     //read orig fig
     for (int i = 0; i < K; i++) {
         fscanf(input_file, "%d %d", &initial[i].x, &initial[i].y);
         if (initial[i].x < 0 || initial[i].x >= N || initial[i].y < 0 || initial[i].y >= N) {
-            printf("Error: Invalid piece coordinates\n");
+            printf("Invalid piece coordinates\n");
             fclose(input_file);
             return 1;
         }
@@ -110,7 +110,7 @@ int main() {
     fclose(input_file);
     init_board();
     output_file = fopen("output.txt", "w");
-    if (!output_file) {printf("Error: Cannot open output.txt\n");return 1;}
+    if (!output_file) {printf("Cannot open output.txt\n");return 1;}
     //start recurse search 
     if (L == 0) {
         //if not necessary add figs, print start config 
@@ -129,7 +129,7 @@ int main() {
         }
     }
     else place_pieces(0, 0, 0);
-    if (solution_count == 0) fprintf(output_file, "no solutions\n");
+    if (solution_count == 0) fprintf(output_file, "no_solutions\n");
     fclose(output_file);
     return 0;
 }
