@@ -22,6 +22,287 @@
 // (или объединения или ENUM'ы).
 
 
+
+
+
+
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <errno.h>
+
+/* Коды завершения / ошибок */
+typedef enum {
+    ERR_OK = 0,
+    ERR_USAGE,
+    ERR_OPEN,
+    ERR_READ,
+    ERR_MISMATCH,  /* разное число строк в file2 и file3 */
+    ERR_ALLOC
+} AppError;
+
+/* Одна пара замены (применение структуры по заданию) */
+typedef struct {
+    char *from;
+    char *to;
+} Replacement;
+
+static int is_eng_letter(int c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
+/* Читает одну строку без '\n'; возвращает 0 при EOF до данных, 1 при успехе */
+static int read_line(FILE *fp, char **buf, size_t *cap, size_t *len_out) {
+    size_t len = 0;
+    int c;
+
+    if (*buf == NULL) {
+        *cap = 32;
+        *buf = malloc(*cap);
+        if (!*buf)
+            return -1;
+    }
+
+    while ((c = fgetc(fp)) != EOF) {
+        if (c == '\n')
+            break;
+        if (len + 1 >= *cap) {
+            size_t ncap = *cap * 2;
+            char *nb = realloc(*buf, ncap);
+            if (!nb)
+                return -1;
+            *buf = nb;
+            *cap = ncap;
+        }
+        (*buf)[len++] = (char)c;
+    }
+    if (len + 1 >= *cap) {
+        size_t ncap = len + 2;
+        char *nb = realloc(*buf, ncap);
+        if (!nb)
+            return -1;
+        *buf = nb;
+        *cap = ncap;
+    }
+    (*buf)[len] = '\0';
+    *len_out = len;
+
+    if (c == EOF && len == 0)
+        return 0; /* конец файла, пустая «строка» не считается */
+    return 1;
+}
+
+static void free_map(Replacement *map, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        free(map[i].from);
+        free(map[i].to);
+    }
+    free(map);
+}
+
+/* Загрузка пар из двух файлов; *out_map должен быть NULL */
+static AppError load_replacements(const char *path2, const char *path3,
+                                  Replacement **out_map, size_t *out_n) {
+    FILE *f2 = fopen(path2, "rb");
+    FILE *f3 = fopen(path3, "rb");
+    if (!f2 || !f3) {
+        if (f2) fclose(f2);
+        if (f3) fclose(f3);
+        return ERR_OPEN;
+    }
+
+    Replacement *map = NULL;
+    size_t n = 0;
+    size_t cap = 0;
+
+    char *line2 = NULL, *line3 = NULL;
+    size_t cap2 = 0, cap3 = 0;
+    size_t len2, len3;
+
+    for (;;) {
+        int r2 = read_line(f2, &line2, &cap2, &len2);
+        int r3 = read_line(f3, &line3, &cap3, &len3);
+
+        if (r2 < 0 || r3 < 0) {
+            free(line2);
+            free(line3);
+            fclose(f2);
+            fclose(f3);
+            free_map(map, n);
+            return ERR_ALLOC;
+        }
+        if (r2 == 0 && r3 == 0)
+            break;
+        if (r2 != r3) {
+            free(line2);
+            free(line3);
+            fclose(f2);
+            fclose(f3);
+            free_map(map, n);
+            return ERR_MISMATCH;
+        }
+
+        if (n == cap) {
+            size_t ncap = cap ? cap * 2 : 8;
+            Replacement *nm = realloc(map, ncap * sizeof *map);
+            if (!nm) {
+                free(line2);
+                free(line3);
+                fclose(f2);
+                fclose(f3);
+                free_map(map, n);
+                return ERR_ALLOC;
+            }
+            map = nm;
+            cap = ncap;
+        }
+
+        char *from = malloc(len2 + 1);
+        char *to = malloc(len3 + 1);
+        if (!from || !to) {
+            free(from);
+            free(to);
+            free(line2);
+            free(line3);
+            fclose(f2);
+            fclose(f3);
+            free_map(map, n);
+            return ERR_ALLOC;
+        }
+        memcpy(from, line2, len2 + 1);
+        memcpy(to, line3, len3 + 1);
+
+        map[n].from = from;
+        map[n].to = to;
+        n++;
+    }
+
+    free(line2);
+    free(line3);
+    fclose(f2);
+    fclose(f3);
+
+    *out_map = map;
+    *out_n = n;
+    return ERR_OK;
+}
+
+/* Первое совпадение по порядку строк в file2 */
+static const char *lookup(const Replacement *map, size_t n,
+                          const char *word, size_t wlen) {
+    for (size_t i = 0; i < n; i++) {
+        if (strlen(map[i].from) == wlen && memcmp(map[i].from, word, wlen) == 0)
+            return map[i].to;
+    }
+    return NULL;
+}
+
+static AppError process(const char *path_in, const char *path_out,
+                        const Replacement *map, size_t n) {
+    FILE *in = fopen(path_in, "rb");
+    FILE *out = fopen(path_out, "wb");
+    if (!in || !out) {
+        if (in) fclose(in);
+        if (out) fclose(out);
+        return ERR_OPEN;
+    }
+
+    char *wbuf = NULL;
+    size_t wcap = 0, wlen = 0;
+    int c;
+
+    while ((c = fgetc(in)) != EOF) {
+        if (is_eng_letter(c)) {
+            if (wlen + 2 > wcap) {
+                size_t ncap = wcap ? wcap * 2 : 32;
+                char *nw = realloc(wbuf, ncap);
+                if (!nw) {
+                    free(wbuf);
+                    fclose(in);
+                    fclose(out);
+                    return ERR_ALLOC;
+                }
+                wbuf = nw;
+                wcap = ncap;
+            }
+            wbuf[wlen++] = (char)c;
+        } else {
+            if (wlen > 0) {
+                wbuf[wlen] = '\0';
+                const char *rep = lookup(map, n, wbuf, wlen);
+                if (rep)
+                    fputs(rep, out);
+                else
+                    fwrite(wbuf, 1, wlen, out);
+                wlen = 0;
+            }
+            fputc(c, out);
+        }
+    }
+
+    if (wlen > 0) {
+        wbuf[wlen] = '\0';
+        const char *rep = lookup(map, n, wbuf, wlen);
+        if (rep)
+            fputs(rep, out);
+        else
+            fwrite(wbuf, 1, wlen, out);
+    }
+
+    free(wbuf);
+    if (fclose(in) != 0 || fclose(out) != 0)
+        return ERR_READ;
+    return ERR_OK;
+}
+
+int main(int argc, char *argv[]) {
+    if (argc != 5) {
+        fprintf(stderr,
+                "Usage: %s <text_file> <old_words_file> <new_words_file> <output_file>\n",
+                argv[0]);
+        return ERR_USAGE;
+    }
+
+    Replacement *map = NULL;
+    size_t n = 0;
+
+    AppError e = load_replacements(argv[2], argv[3], &map, &n);
+    if (e != ERR_OK) {
+        if (e == ERR_MISMATCH)
+            fprintf(stderr, "Mismatch: different number of lines in file2 and file3.\n");
+        else if (e == ERR_OPEN)
+            perror("open");
+        else
+            fprintf(stderr, "Memory error loading mappings.\n");
+        return (int)e;
+    }
+
+    e = process(argv[1], argv[4], map, n);
+    free_map(map, n);
+
+    if (e != ERR_OK) {
+        if (e == ERR_OPEN)
+            perror("open");
+        else
+            fprintf(stderr, "Error during processing.\n");
+        return (int)e;
+    }
+
+    return ERR_OK;
+}
+
+
+
+
+
+
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
