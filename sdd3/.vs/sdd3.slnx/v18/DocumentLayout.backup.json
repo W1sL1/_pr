@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\_pr\\sdd3\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{EB5C2123-332A-45C8-BD7F-DA8BF87AE359}|sdd3.vcxproj|C:\\_pr\\sdd3\\sdd3.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{EB5C2123-332A-45C8-BD7F-DA8BF87AE359}|sdd3.vcxproj|solutionrelative:sdd3.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "sdd3.c",
+              "DocumentMoniker": "C:\\_pr\\sdd3\\sdd3.c",
+              "RelativeDocumentMoniker": "sdd3.c",
+              "ToolTip": "C:\\_pr\\sdd3\\sdd3.c",
+              "RelativeToolTip": "sdd3.c",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
+              "WhenOpened": "2026-03-25T17:48:47.352Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
