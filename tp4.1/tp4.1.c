@@ -1,6 +1,6 @@
 #include <stdio.h>
 int main(){
-    printf("%s","i am not ready");
+    printf("%s","i am not ready today");
     return 0;
 }
 // #define _CRT_SECURE_NO_WARNINGS
