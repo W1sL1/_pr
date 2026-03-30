@@ -18,602 +18,268 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Условия лабораторной работы №1 по Структурам данных. 
 // Тема: "Работа с файлами". Язык: Си.
-// Необходимо реализовать программу, осуществляющую замену слов в тексте и вывод полученного 
-// текста в выходной файл.
+// Необходимо реализовать программу, осуществляющую замену слов в тексте и вывод полученного текста в выходной файл.
 //  Входные данные:
-// - путь к файлу1 с текстом
-// - путь к файлу2 со словами, которые требуется заменить
-// - путь к файлу3 со словами, на которые требуется заменить
-// - путь к выходному файлу4, в который будет записан результирующий текст.
-// Слова в файлах 2 и 3 разделяются переносом строки. Слово на первой строке файла 2 должно 
-// заменяться на слово первой строки файла 3, слово на второй строке - на соответствующее 
-// слово второй строки и т.д.
+// - путь к файлу1 с текстом (имя file1.txt)
+// - путь к файлу2 со словами, которые требуется заменить (имя file2.txt)
+// - путь к файлу3 со словами, на которые требуется заменить (имя file3.txt)
+// - путь к выходному файлу4, в который будет записан результирующий текст (имя file4.txt).
+// Слова в файлах 2 и 3 разделяются переносом строки. Слово на первой строке файла 2 должно заменяться на слово первой строки файла 3, слово на второй строке - на соответствующее слово второй строки и т.д. 
 // Требования:
-// - текст может включать английские буквы, различные знаки препинания и специальные символы 
-// (в т.ч. пробелы, табуляции, и т.д.)
+// - текст может включать английские и русские буквы, различные знаки препинания и специальные символы (в т.ч. пробелы, табуляции, и т.д.)
 // - результирующий текст должен повторять все знаки препинания и специальные символы оригинального текста.
-// - программа должна эффективно управлять памятью 
-// (применяем динамическую память, используем каждый байт оптимально).
-// - входные данные в программу должны передаваться с использованием аргументов 
-// командной строки и входных параметров main (argv, argc). 
-// - в программе необходимо найти применение и грамотно заиспользовать структуры 
-// (или объединения или ENUM'ы).
+// - программа должна эффективно управлять памятью       (применяем динамическую память, используем каждый байт оптимально).
+// - входные данные в программу должны передаваться с использованием аргументов командной строки и входных параметров main (argv, argc). 
+// - в программе необходимо найти применение и грамотно заиспользовать структуры (или объединения или ENUM'ы).
+//
+// - замена целых слов 
+// - учитывать регистр 
+//
+// Пример входных данных
+// file1.txt
+// Hello, world! Привет мир.
+// WORLD world World. 
+// file2.txt
+// world
+// мир
+// file3.txt
+// WORLD2
+// МИР2
+// file4.txt
+// (файл-приемник, изначально можно пустой)
+// Ожидаемый выход (file4.txt)
+// Hello, WORLD2! Привет МИР2.
+// WORLD WORLD2 World.
+
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <errno.h>
+#include <locale.h>
 
-/* Коды завершения / ошибок */
-typedef enum {
-    ERR_OK = 0,
-    ERR_USAGE,
-    ERR_OPEN,
-    ERR_READ,
-    ERR_MISMATCH,  /* разное число строк в file2 и file3 */
-    ERR_ALLOC
-} AppError;
-
-/* Одна пара замены (применение структуры по заданию) */
 typedef struct {
-    char *from;
-    char *to;
-} Replacement;
+    char *from; // что ищем
+    char *to;   // на что заменяем
+} Rule;
 
-static int is_eng_letter(int c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+typedef enum {
+    TOKEN_NONE = 0,
+    TOKEN_WORD = 1,
+    TOKEN_DELIM = 2
+} TokenType;
+
+static void *xrealloc(void *p, size_t n) {
+    void *q = realloc(p, n);
+    if (!q) {
+        perror("realloc");
+        exit(1);
+    }
+    return q;
 }
 
-/* Читает одну строку без '\n'; возвращает 0 при EOF до данных, 1 при успехе */
-static int read_line(FILE *fp, char **buf, size_t *cap, size_t *len_out) {
-    size_t len = 0;
-    int c;
-
-    if (*buf == NULL) {
-        *cap = 32;
-        *buf = malloc(*cap);
-        if (!*buf)
-            return -1;
+static char *read_line(FILE *f) {
+    // Читает строку до '\n' (без '\n'), возвращает malloc'd строку или NULL на EOF.
+    size_t cap = 64, len = 0;
+    char *buf = (char*)malloc(cap);
+    if (!buf) {
+        perror("malloc");
+        exit(1);
     }
 
-    while ((c = fgetc(fp)) != EOF) {
-        if (c == '\n')
-            break;
-        if (len + 1 >= *cap) {
-            size_t ncap = *cap * 2;
-            char *nb = realloc(*buf, ncap);
-            if (!nb)
-                return -1;
-            *buf = nb;
-            *cap = ncap;
+    int ch;
+    while ((ch = fgetc(f)) != EOF) {
+        if (ch == '\n') break;
+        if (ch == '\r') {
+            // Windows CRLF: откусываем '\r' в конце
+            continue;
         }
-        (*buf)[len++] = (char)c;
+        if (len + 1 >= cap) {
+            cap *= 2;
+            buf = (char*)xrealloc(buf, cap);
+        }
+        buf[len++] = (char)ch;
     }
-    if (len + 1 >= *cap) {
-        size_t ncap = len + 2;
-        char *nb = realloc(*buf, ncap);
-        if (!nb)
-            return -1;
-        *buf = nb;
-        *cap = ncap;
-    }
-    (*buf)[len] = '\0';
-    *len_out = len;
 
-    if (c == EOF && len == 0)
-        return 0; /* конец файла, пустая «строка» не считается */
-    return 1;
+    if (ch == EOF && len == 0) {
+        free(buf);
+        return NULL;
+    }
+
+    buf[len] = '\0';
+    return buf;
 }
 
-static void free_map(Replacement *map, size_t n) {
+static int is_letter_char(int c) {
+    // По условию: английские и русские буквы.
+    // isalpha работает корректно при подходящей локали (setlocale для LC_CTYPE).
+    return isalpha((unsigned char)c) != 0;
+}
+
+static void flush_word(FILE *out, Rule *rules, size_t rule_count,
+                        char *word, size_t *wlen) {
+    if (*wlen == 0) return;
+
+    word[*wlen] = '\0';
+
+    // Замена с учетом регистра: strcmp.
+    for (size_t i = 0; i < rule_count; i++) {
+        if (strcmp(word, rules[i].from) == 0) {
+            fputs(rules[i].to, out);
+            *wlen = 0;
+            return;
+        }
+    }
+
+    // Не нашли — выводим как есть
+    fwrite(word, 1, *wlen, out);
+    *wlen = 0;
+}
+
+static void free_rules(Rule *rules, size_t n) {
+    if (!rules) return;
     for (size_t i = 0; i < n; i++) {
-        free(map[i].from);
-        free(map[i].to);
+        free(rules[i].from);
+        free(rules[i].to);
     }
-    free(map);
+    free(rules);
 }
 
-/* Загрузка пар из двух файлов; *out_map должен быть NULL */
-static AppError load_replacements(const char *path2, const char *path3,
-                                  Replacement **out_map, size_t *out_n) {
-    FILE *f2 = fopen(path2, "rb");
-    FILE *f3 = fopen(path3, "rb");
-    if (!f2 || !f3) {
-        if (f2) fclose(f2);
-        if (f3) fclose(f3);
-        return ERR_OPEN;
-    }
-
-    Replacement *map = NULL;
-    size_t n = 0;
-    size_t cap = 0;
-
-    char *line2 = NULL, *line3 = NULL;
-    size_t cap2 = 0, cap3 = 0;
-    size_t len2, len3;
-
-    for (;;) {
-        int r2 = read_line(f2, &line2, &cap2, &len2);
-        int r3 = read_line(f3, &line3, &cap3, &len3);
-
-        if (r2 < 0 || r3 < 0) {
-            free(line2);
-            free(line3);
-            fclose(f2);
-            fclose(f3);
-            free_map(map, n);
-            return ERR_ALLOC;
-        }
-        if (r2 == 0 && r3 == 0)
-            break;
-        if (r2 != r3) {
-            free(line2);
-            free(line3);
-            fclose(f2);
-            fclose(f3);
-            free_map(map, n);
-            return ERR_MISMATCH;
-        }
-
-        if (n == cap) {
-            size_t ncap = cap ? cap * 2 : 8;
-            Replacement *nm = realloc(map, ncap * sizeof *map);
-            if (!nm) {
-                free(line2);
-                free(line3);
-                fclose(f2);
-                fclose(f3);
-                free_map(map, n);
-                return ERR_ALLOC;
-            }
-            map = nm;
-            cap = ncap;
-        }
-
-        char *from = malloc(len2 + 1);
-        char *to = malloc(len3 + 1);
-        if (!from || !to) {
-            free(from);
-            free(to);
-            free(line2);
-            free(line3);
-            fclose(f2);
-            fclose(f3);
-            free_map(map, n);
-            return ERR_ALLOC;
-        }
-        memcpy(from, line2, len2 + 1);
-        memcpy(to, line3, len3 + 1);
-
-        map[n].from = from;
-        map[n].to = to;
-        n++;
-    }
-
-    free(line2);
-    free(line3);
-    fclose(f2);
-    fclose(f3);
-
-    *out_map = map;
-    *out_n = n;
-    return ERR_OK;
-}
-
-/* Первое совпадение по порядку строк в file2 */
-static const char *lookup(const Replacement *map, size_t n,
-                          const char *word, size_t wlen) {
-    for (size_t i = 0; i < n; i++) {
-        if (strlen(map[i].from) == wlen && memcmp(map[i].from, word, wlen) == 0)
-            return map[i].to;
-    }
-    return NULL;
-}
-
-static AppError process(const char *path_in, const char *path_out,
-                        const Replacement *map, size_t n) {
-    FILE *in = fopen(path_in, "rb");
-    FILE *out = fopen(path_out, "wb");
-    if (!in || !out) {
-        if (in) fclose(in);
-        if (out) fclose(out);
-        return ERR_OPEN;
-    }
-
-    char *wbuf = NULL;
-    size_t wcap = 0, wlen = 0;
-    int c;
-
-    while ((c = fgetc(in)) != EOF) {
-        if (is_eng_letter(c)) {
-            if (wlen + 2 > wcap) {
-                size_t ncap = wcap ? wcap * 2 : 32;
-                char *nw = realloc(wbuf, ncap);
-                if (!nw) {
-                    free(wbuf);
-                    fclose(in);
-                    fclose(out);
-                    return ERR_ALLOC;
-                }
-                wbuf = nw;
-                wcap = ncap;
-            }
-            wbuf[wlen++] = (char)c;
-        } else {
-            if (wlen > 0) {
-                wbuf[wlen] = '\0';
-                const char *rep = lookup(map, n, wbuf, wlen);
-                if (rep)
-                    fputs(rep, out);
-                else
-                    fwrite(wbuf, 1, wlen, out);
-                wlen = 0;
-            }
-            fputc(c, out);
-        }
-    }
-
-    if (wlen > 0) {
-        wbuf[wlen] = '\0';
-        const char *rep = lookup(map, n, wbuf, wlen);
-        if (rep)
-            fputs(rep, out);
-        else
-            fwrite(wbuf, 1, wlen, out);
-    }
-
-    free(wbuf);
-    if (fclose(in) != 0 || fclose(out) != 0)
-        return ERR_READ;
-    return ERR_OK;
-}
-
-int main(int argc, char *argv[]) {
+int main(int argc, char **argv) {
     if (argc != 5) {
         fprintf(stderr,
-                "Usage: %s <text_file> <old_words_file> <new_words_file> <output_file>\n",
-                argv[0]);
-        return ERR_USAGE;
+            "Usage: %s file1.txt file2.txt file3.txt file4.txt\n", argv[0]);
+        return 1;
     }
 
-    Replacement *map = NULL;
-    size_t n = 0;
+    // Локаль важна для isalpha по кириллице (обычно Windows-1251 + системная локаль).
+    setlocale(LC_CTYPE, "");
 
-    AppError e = load_replacements(argv[2], argv[3], &map, &n);
-    if (e != ERR_OK) {
-        if (e == ERR_MISMATCH)
-            fprintf(stderr, "Mismatch: different number of lines in file2 and file3.\n");
-        else if (e == ERR_OPEN)
-            perror("open");
-        else
-            fprintf(stderr, "Memory error loading mappings.\n");
-        return (int)e;
+    const char *file1 = argv[1];
+    const char *file2 = argv[2];
+    const char *file3 = argv[3];
+    const char *file4 = argv[4];
+
+    FILE *in1 = fopen(file1, "rb");
+    FILE *in2 = fopen(file2, "r");
+    FILE *in3 = fopen(file3, "r");
+    FILE *out = fopen(file4, "wb");
+
+    if (!in1 || !in2 || !in3 || !out) {
+        perror("fopen");
+        if (in1) fclose(in1);
+        if (in2) fclose(in2);
+        if (in3) fclose(in3);
+        if (out) fclose(out);
+        return 1;
     }
 
-    e = process(argv[1], argv[4], map, n);
-    free_map(map, n);
-
-    if (e != ERR_OK) {
-        if (e == ERR_OPEN)
-            perror("open");
-        else
-            fprintf(stderr, "Error during processing.\n");
-        return (int)e;
+    // Читаем правила построчно: file2[i] -> file3[i]
+    size_t rule_count = 0, rule_cap = 16;
+    Rule *rules = (Rule*)malloc(rule_cap * sizeof(Rule));
+    if (!rules) {
+        perror("malloc");
+        return 1;
     }
 
-    return ERR_OK;
-}
+    while (1) {
+        char *a = read_line(in2);
+        char *b = read_line(in3);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-
-#define MAX_WORD_LEN 256
-#define INITIAL_CAPACITY 10
-#define GROWTH_FACTOR 2
-
-// Структура для хранения пары слов (оригинал -> замена)
-typedef struct {
-    char *original;
-    char *replacement;
-} WordPair;
-
-// Структура для хранения словаря замен
-typedef struct {
-    WordPair *pairs;
-    int count;
-    int capacity;
-} Dictionary;
-
-// Инициализация словаря
-Dictionary* init_dictionary() {
-    Dictionary *dict = (Dictionary*)malloc(sizeof(Dictionary));
-    if (!dict) {
-        fprintf(stderr, "Ошибка выделения памяти для словаря\n");
-        exit(EXIT_FAILURE);
-    }
-    
-    dict->count = 0;
-    dict->capacity = INITIAL_CAPACITY;
-    dict->pairs = (WordPair*)malloc(dict->capacity * sizeof(WordPair));
-    
-    if (!dict->pairs) {
-        fprintf(stderr, "Ошибка выделения памяти для пар слов\n");
-        free(dict);
-        exit(EXIT_FAILURE);
-    }
-    
-    return dict;
-}
-
-// Добавление пары слов в словарь
-void add_pair(Dictionary *dict, const char *original, const char *replacement) {
-    if (dict->count >= dict->capacity) {
-        dict->capacity *= GROWTH_FACTOR;
-        dict->pairs = (WordPair*)realloc(dict->pairs, dict->capacity * sizeof(WordPair));
-        if (!dict->pairs) {
-            fprintf(stderr, "Ошибка перевыделения памяти для словаря\n");
-            exit(EXIT_FAILURE);
+        if (!a && !b) break;              // обе EOF
+        if (!a || !b) {
+            fprintf(stderr, "Error: file2 and file3 have different number of lines.\n");
+            free(a);
+            free(b);
+            free_rules(rules, rule_count);
+            fclose(in1); fclose(in2); fclose(in3); fclose(out);
+            return 1;
         }
-    }
-    
-    // Выделяем память для строк и копируем их
-    dict->pairs[dict->count].original = (char*)malloc(strlen(original) + 1);
-    dict->pairs[dict->count].replacement = (char*)malloc(strlen(replacement) + 1);
-    
-    if (!dict->pairs[dict->count].original || !dict->pairs[dict->count].replacement) {
-        fprintf(stderr, "Ошибка выделения памяти для строки\n");
-        exit(EXIT_FAILURE);
-    }
-    
-    strcpy(dict->pairs[dict->count].original, original);
-    strcpy(dict->pairs[dict->count].replacement, replacement);
-    
-    dict->count++;
-}
 
-// Загрузка словаря из файлов
-Dictionary* load_dictionary(const char *original_file, const char *replacement_file) {
-    FILE *f_orig = fopen(original_file, "r");
-    FILE *f_repl = fopen(replacement_file, "r");
-    
-    if (!f_orig || !f_repl) {
-        if (f_orig) fclose(f_orig);
-        if (f_repl) fclose(f_repl);
-        fprintf(stderr, "Ошибка открытия файлов словаря\n");
-        exit(EXIT_FAILURE);
-    }
-    
-    Dictionary *dict = init_dictionary();
-    char orig_line[MAX_WORD_LEN];
-    char repl_line[MAX_WORD_LEN];
-    
-    while (fgets(orig_line, sizeof(orig_line), f_orig) && 
-           fgets(repl_line, sizeof(repl_line), f_repl)) {
-        // Удаляем символ новой строки
-        orig_line[strcspn(orig_line, "\n")] = '\0';
-        repl_line[strcspn(repl_line, "\n")] = '\0';
-        
-        if (strlen(orig_line) > 0) {  // Игнорируем пустые строки
-            add_pair(dict, orig_line, repl_line);
+        if (rule_count == rule_cap) {
+            rule_cap *= 2;
+            rules = (Rule*)xrealloc(rules, rule_cap * sizeof(Rule));
         }
-    }
-    
-    fclose(f_orig);
-    fclose(f_repl);
-    return dict;
-}
 
-// Освобождение памяти словаря
-void free_dictionary(Dictionary *dict) {
-    for (int i = 0; i < dict->count; i++) {
-        free(dict->pairs[i].original);
-        free(dict->pairs[i].replacement);
+        rules[rule_count].from = a;
+        rules[rule_count].to = b;
+        rule_count++;
     }
-    free(dict->pairs);
-    free(dict);
-}
 
-// Проверка, является ли символ разделителем (не буквой)
-int is_delimiter(char c) {
-    // Буквы английского алфавита считаем частью слова
-    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
-        return 0;
+    // Проходим file1 и делаем замену “на границах слов”
+    char *word = (char*)malloc(64);
+    if (!word) {
+        perror("malloc");
+        free_rules(rules, rule_count);
+        fclose(in1); fclose(in2); fclose(in3); fclose(out);
+        return 1;
     }
-    return 1;
-}
 
-// Поиск и замена слова в тексте
-char* replace_word(const char *text, const Dictionary *dict, size_t *new_len) {
-    if (!text || !dict || dict->count == 0) {
-        *new_len = strlen(text);
-        char *result = (char*)malloc(*new_len + 1);
-        if (result) strcpy(result, text);
-        return result;
-    }
-    
-    // Начальная оценка размера буфера
-    size_t capacity = strlen(text) + 1;
-    char *result = (char*)malloc(capacity);
-    if (!result) {
-        fprintf(stderr, "Ошибка выделения памяти для результата\n");
-        exit(EXIT_FAILURE);
-    }
-    result[0] = '\0';
-    
-    size_t pos = 0;
-    size_t text_len = strlen(text);
-    
-    while (pos < text_len) {
-        // Находим начало слова
-        while (pos < text_len && is_delimiter(text[pos])) {
-            // Копируем разделители как есть
-            char ch[2] = {text[pos], '\0'};
-            size_t current_len = strlen(result);
-            if (current_len + 2 > capacity) {
-                capacity *= GROWTH_FACTOR;
-                result = (char*)realloc(result, capacity);
-                if (!result) {
-                    fprintf(stderr, "Ошибка перевыделения памяти\n");
-                    exit(EXIT_FAILURE);
-                }
+    size_t wcap = 64, wlen = 0;
+
+    int ch;
+    TokenType t;
+
+    while ((ch = fgetc(in1)) != EOF) {
+        if (is_letter_char(ch)) {
+            t = TOKEN_WORD;
+            if (wlen + 1 >= wcap) {
+                wcap *= 2;
+                word = (char*)xrealloc(word, wcap);
             }
-            strcat(result, ch);
-            pos++;
+            word[wlen++] = (char)ch;
+        } else {
+            t = TOKEN_DELIM;
+            (void)t; // чтобы ясно показать логику: слово не набираем, разделитель выводим
+            flush_word(out, rules, rule_count, word, &wlen);
+            fputc(ch, out); // сохраняем все знаки препинания/пробелы как есть
         }
-        
-        if (pos >= text_len) break;
-        
-        // Нашли начало слова
-        size_t word_start = pos;
-        while (pos < text_len && !is_delimiter(text[pos])) {
-            pos++;
-        }
-        size_t word_len = pos - word_start;
-        
-        // Извлекаем слово
-        char *word = (char*)malloc(word_len + 1);
-        if (!word) {
-            fprintf(stderr, "Ошибка выделения памяти для слова\n");
-            exit(EXIT_FAILURE);
-        }
-        strncpy(word, text + word_start, word_len);
-        word[word_len] = '\0';
-        
-        // Ищем замену
-        const char *replacement = NULL;
-        for (int i = 0; i < dict->count; i++) {
-            if (strcmp(word, dict->pairs[i].original) == 0) {
-                replacement = dict->pairs[i].replacement;
-                break;
-            }
-        }
-        
-        // Добавляем слово или замену в результат
-        const char *to_add = replacement ? replacement : word;
-        size_t add_len = strlen(to_add);
-        size_t current_len = strlen(result);
-        
-        if (current_len + add_len + 1 > capacity) {
-            while (current_len + add_len + 1 > capacity) {
-                capacity *= GROWTH_FACTOR;
-            }
-            result = (char*)realloc(result, capacity);
-            if (!result) {
-                fprintf(stderr, "Ошибка перевыделения памяти\n");
-                free(word);
-                exit(EXIT_FAILURE);
-            }
-        }
-        
-        strcat(result, to_add);
-        free(word);
     }
-    
-    *new_len = strlen(result);
-    return result;
-}
 
-// Основная функция обработки файла
-void process_file(const char *input_file, const char *output_file, const Dictionary *dict) {
-    FILE *fin = fopen(input_file, "r");
-    FILE *fout = fopen(output_file, "w");
-    
-    if (!fin || !fout) {
-        if (fin) fclose(fin);
-        if (fout) fclose(fout);
-        fprintf(stderr, "Ошибка открытия файлов для обработки\n");
-        exit(EXIT_FAILURE);
-    }
-    
-    // Читаем весь файл в память
-    fseek(fin, 0, SEEK_END);
-    long file_size = ftell(fin);
-    fseek(fin, 0, SEEK_SET);
-    
-    char *buffer = (char*)malloc(file_size + 1);
-    if (!buffer) {
-        fprintf(stderr, "Ошибка выделения памяти для буфера файла\n");
-        fclose(fin);
-        fclose(fout);
-        exit(EXIT_FAILURE);
-    }
-    
-    size_t bytes_read = fread(buffer, 1, file_size, fin);
-    buffer[bytes_read] = '\0';
-    fclose(fin);
-    
-    // Обрабатываем текст
-    size_t result_len;
-    char *result = replace_word(buffer, dict, &result_len);
-    
-    // Записываем результат
-    fwrite(result, 1, result_len, fout);
-    
-    // Освобождаем память
-    free(buffer);
-    free(result);
-    fclose(fout);
-}
+    // добиваем последнее слово
+    flush_word(out, rules, rule_count, word, &wlen);
 
-// Функция для отображения справки
-void print_usage(const char *program_name) {
-    fprintf(stderr, "Использование: %s <файл_текста> <файл_оригиналов> <файл_замен> <выходной_файл>\n", 
-            program_name);
-    fprintf(stderr, "  файл_текста     - исходный текстовый файл\n");
-    fprintf(stderr, "  файл_оригиналов - файл со словами для замены (по одному на строку)\n");
-    fprintf(stderr, "  файл_замен      - файл со словами-заменами (по одному на строку)\n");
-    fprintf(stderr, "  выходной_файл   - файл для сохранения результата\n");
-}
+    free(word);
+    free_rules(rules, rule_count);
 
-int main(int argc, char *argv[]) {
-    // Проверка аргументов командной строки
-    if (argc != 5) {
-        fprintf(stderr, "Ошибка: неверное количество аргументов\n");
-        print_usage(argv[0]);
-        return EXIT_FAILURE;
-    }
-    
-    const char *text_file = argv[1];
-    const char *original_words_file = argv[2];
-    const char *replacement_words_file = argv[3];
-    const char *output_file = argv[4];
-    
-    // Загружаем словарь замен
-    Dictionary *dict = load_dictionary(original_words_file, replacement_words_file);
-    
-    if (dict->count == 0) {
-        fprintf(stderr, "Предупреждение: словарь замен пуст\n");
-    } else {
-        printf("Загружено %d пар замен\n", dict->count);
-    }
-    
-    // Обрабатываем файл
-    process_file(text_file, output_file, dict);
-    
-    printf("Обработка завершена. Результат сохранен в файл: %s\n", output_file);
-    
-    // Освобождаем память
-    free_dictionary(dict);
-    
-    return EXIT_SUCCESS;
+    fclose(in1);
+    fclose(in2);
+    fclose(in3);
+    fclose(out);
+
+    return 0;
 }

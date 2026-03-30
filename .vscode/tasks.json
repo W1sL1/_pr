@@ -2,41 +2,20 @@
     "tasks": [
         {
             "type": "cppbuild",
-            "label": "C/C++: gcc.exe сборка активного файла",
-            "command": "C:/mingw64/bin/gcc.exe",
+            "label": "C/C++: g++.exe сборка активного файла",
+            "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
                 "${file}",
                 "-o",
-                "${fileDirname}\\${fileBasenameNoExtension}.exe",
-                ""
-            ],
-            "options": {
-                "cwd": "C:/mingw64/bin"
-            },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "group": "build",
-            "detail": "компилятор: C:/mingw64/bin/gcc.exe"
-        },
-        {
-            "type": "cppbuild",
-            "label": "C/C++: cl.exe сборка активного файла",
-            "command": "cl.exe",
-            "args": [
-                "/Zi",
-                "/EHsc",
-                "/nologo",
-                "/Fe${fileDirname}\\${fileBasenameNoExtension}.exe",
-                "${file}"
+                "${fileDirname}\\${fileBasenameNoExtension}.exe"
             ],
             "options": {
                 "cwd": "${fileDirname}"
             },
             "problemMatcher": [
-                "$msCompile"
+                "$gcc"
             ],
             "group": {
                 "kind": "build",
