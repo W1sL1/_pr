@@ -1,58 +1,114 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#define C 50 //количество слов в массивах s2 и s3
-#define W 50 //размер слова
-//paste args:  f1.txt f2.txt f3.txt f4.txt
-void change_words(char* s1, char s2[C][W], char s3[C][W], char* argv) {
-    //если есть слово s1 в s2, меняем на слово из s3
-    for (int i = 0; i < C; i++) { 
-        //удаляем последний перенос 
-        if (s2[i][strlen(s2[i]) - 1] == '\n') {  
-            s2[i][strlen(s2[i]) - 1] = 0;
-        }
-        if (strcmp(s1, s2[i]) == 0) {
-            strcpy(s1, s3[i]);
-            //удаляем последний перенос
-            if (s3[i][strlen(s3[i]) - 1] == '\n') {  
-                s1[strlen(s3[i]) - 1] = 0;
-            }
-            break;
-        }
+#include <string.h>
+#include <ctype.h>
+
+// Структура для хранения пар слов (что меняем -> на что меняем)
+typedef struct {
+    char *target;
+    char *replacement;
+} ReplacementPair;
+
+// Контейнер для всех пар
+typedef struct {
+    ReplacementPair *items;
+    int count;
+} Dictionary;
+
+// Функция для очистки памяти
+void free_dictionary(Dictionary *dict) {
+    for (int i = 0; i < dict->count; i++) {
+        free(dict->items[i].target);
+        free(dict->items[i].replacement);
     }
-    FILE* file4;
-    file4 = fopen(argv, "a");
-    fputs(s1, file4);
+    free(dict->items);
 }
-int main(int argc, char* argv[]) {
-    FILE* file1, * file2, * file3, *file4;
-    file1 = fopen(argv[1], "r");
-    file2 = fopen(argv[2], "r");
-    file3 = fopen(argv[3], "r");
-    file4 = fopen(argv[4], "w");
-    fclose(file4);
-    char s1[W] = { 0 }; //хранение форм. слова
-    char s2[C][W]; //в каждой ячеке хранится слово, которое нужно заменить
-    char s3[C][W];  //в каждой ячеке хранится слово, на которое нужно заменить
-    int i2 = 0;
-    while (fgets(s2[i2], W, file2)) i2++;
-    int i3 = 0;
-    while (fgets(s3[i3], W, file3)) i3++;
-    int i = 0;
-    char symb = 0;
-    while ((symb = fgetc(file1)) != EOF) {
-        while (((symb >= -64) && (symb <= -1)) || ((symb >= 65) && (symb <= 90)) || ((symb >= 97) && (symb <= 122))) { //
-            s1[i] = symb;
-            i++;
-            if (feof(file1) == 0) { //если есть еще строка
-                symb = fgetc(file1);
-            }
-        } //осталось слово s1 и символ symb после него, который не является буквой
-        change_words(s1, s2, s3, argv[4]);
-        for (int j = 0; j < W; j++) s1[j] = 0;
-        i = 0;
-        file4 = fopen(argv[4], "a");
-        fputc(symb, file4);
+
+// Чтение слов из файла в массив строк
+char** read_words(const char *filename, int *count) {
+    FILE *file = fopen(filename, "r");
+    if (!file) return NULL;
+
+    char **words = NULL;
+    char buffer[1024];
+    *count = 0;
+
+    while (fgets(buffer, sizeof(buffer), file)) {
+        buffer[strcspn(buffer, "\r\n")] = 0; // Удаление переноса строки
+        words = realloc(words, (*count + 1) * sizeof(char*));
+        words[*count] = strdup(buffer);
+        (*count)++;
     }
+    fclose(file);
+    return words;
+}
+
+// Проверка, является ли символ частью слова (буквы и цифры)
+int is_word_char(char c) {
+    return isalnum((unsigned char)c) || (unsigned char)c > 127; // Учет кириллицы
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 5) {
+        printf("Использование: %s f1.txt f2.txt f3.txt f4.txt\n", argv[0]);
+        return 1;
+    }
+
+    int count2 = 0, count3 = 0;
+    char **words2 = read_words(argv[2], &count2);
+    char **words3 = read_words(argv[3], &count3);
+
+    if (!words2 || !words3) {
+        printf("Ошибка чтения файлов словаря.\n");
+        return 1;
+    }
+
+    int min_count = count2 < count3 ? count2 : count3;
+    Dictionary dict = { malloc(min_count * sizeof(ReplacementPair)), min_count };
+
+    for (int i = 0; i < min_count; i++) {
+        dict.items[i].target = words2[i];
+        dict.items[i].replacement = words3[i];
+    }
+    free(words2); free(words3);
+
+    FILE *fin = fopen(argv[1], "r");
+    FILE *fout = fopen(argv[4], "w");
+
+    if (!fin || !fout) {
+        printf("Ошибка открытия файлов текста.\n");
+        return 1;
+    }
+
+    char c;
+    char word_buf[1024];
+    int idx = 0;
+
+    while (1) {
+        c = fgetc(fin);
+        if (is_word_char(c) && c != EOF) {
+            word_buf[idx++] = c;
+        } else {
+            if (idx > 0) {
+                word_buf[idx] = '\0';
+                char *to_print = word_buf;
+                for (int i = 0; i < dict.count; i++) {
+                    if (strcmp(word_buf, dict.items[i].target) == 0) {
+                        to_print = dict.items[i].replacement;
+                        break;
+                    }
+                }
+                fprintf(fout, "%s", to_print);
+                idx = 0;
+            }
+            if (c == EOF) break;
+            fputc(c, fout);
+        }
+    }
+
+    fclose(fin);
+    fclose(fout);
+    free_dictionary(&dict);
+
+    return 0;
 }

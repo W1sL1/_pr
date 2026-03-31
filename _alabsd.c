@@ -30,6 +30,250 @@
 
 
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <math.h>
+#include <locale.h>
+#define MAX_SIZE 100
+
+typedef struct {
+    float data[MAX_SIZE];
+    int top;
+} Stack;
+
+void initialize(Stack* stack) {
+    stack->top = -1;
+}
+
+int isEmpty(Stack* stack) {
+    return (stack->top == -1);
+}
+
+void push(Stack* stack, float ch) {
+    if (stack->top == MAX_SIZE - 1) {
+        printf("Стек переполнен\n");
+        return;
+    }
+    stack->data[++(stack->top)] = ch;
+}
+
+float pop(Stack* stack) {
+    if (isEmpty(stack)) {
+        printf("Стек пуст\n");
+        return '\0';
+    }
+    return stack->data[(stack->top)--];
+}
+
+int isOperator(char ch) {
+    return (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '^' || ch == '!' || ch == 'q' || ch == 's' || ch == 'c');
+}
+
+int getPriority(char ch) {
+    if (ch == '+' || ch == '-')
+        return 1;
+    else if (ch == '*' || ch == '/')
+        return 2;
+    else if (ch == '^' || ch == '!' || ch == 'q' || ch == 's' || ch == 'c')
+        return 3;
+    else
+        return 0;
+}
+
+void infixToPostfix(char* infix, char* postfix) {
+    Stack stack;
+    initialize(&stack);
+    int i, j;
+    int k = 0;
+    char ch;
+    char tmp[10];
+    char xs[123] = { 0 };
+    char xs1[123][10];
+
+    for (i = 0, j = 0; infix[i] != '\0'; i++) {
+        ch = infix[i];
+
+        if (ch >= 97 && ch <= 122 && ch != 'q' && ch != 's' && ch != 'c') {
+            if (xs[ch] > 0) {
+                while (isdigit(xs1[ch][k])) {
+                    postfix[j++] = xs1[ch][k++];
+                }
+                k = 0;
+                postfix[j++] = ' ';
+            }
+            else {
+                printf("Введите значение переменной %c: ", ch);
+                gets_s(tmp, 10);
+                while (isdigit(tmp[k])) {
+                    postfix[j++] = tmp[k++];
+                }
+                k = 0;
+                postfix[j++] = ' ';
+                xs[ch]++;
+                while (isdigit(tmp[k])) {
+                    xs1[ch][k++] = tmp[k++];
+                }
+                k = 0;
+            }
+        }
+
+
+        if (ch == ' ' || ch == '\t')
+            continue;
+
+        if (isdigit(ch)) {
+            while (isdigit(infix[i])) {
+                postfix[j++] = infix[i++];
+            }
+            postfix[j++] = ' ';
+            i--;
+        }
+        else if (isOperator(ch)) {
+            while (!isEmpty(&stack) && getPriority(stack.data[stack.top]) >= getPriority(ch)) {
+                postfix[j++] = pop(&stack);
+                postfix[j++] = ' ';
+            }
+            push(&stack, ch);
+        }
+        else if (ch == '(') {
+            push(&stack, ch);
+        }
+        else if (ch == ')') {
+            while (!isEmpty(&stack) && stack.data[stack.top] != '(') {
+                postfix[j++] = pop(&stack);
+                postfix[j++] = ' ';
+            }
+            if (!isEmpty(&stack) && stack.data[stack.top] == '(') {
+                pop(&stack);
+            }
+            else {
+                printf("Ошибка: неправильное выражение\n");
+                return;
+            }
+        }
+    }
+
+    while (!isEmpty(&stack)) {
+        if (stack.data[stack.top] == '(') {
+            printf("Ошибка: неправильное выражение\n");
+            return;
+        }
+        postfix[j++] = pop(&stack);
+        postfix[j++] = ' ';
+    }
+
+    postfix[j] = '\0';
+}
+
+float evaluatePostfix(char* postfix) {
+    Stack stack;
+    initialize(&stack);
+    int i;
+    float result, operand1, operand2;
+    char num[10];
+    int numIndex = 0;
+    char ch;
+
+    for (i = 0; postfix[i] != '\0'; i++) {
+        ch = postfix[i];
+
+        if (isdigit(ch)) {
+            while (isdigit(postfix[i])) {
+                num[numIndex++] = postfix[i++];
+            }
+            num[numIndex] = '\0';
+            numIndex = 0;
+            push(&stack, atoi(num));
+        }
+        else if (ch == ' ') {
+            continue;
+        }
+        else if (isOperator(ch)) {
+            if (ch == '!' || ch == 'q' || ch == 's' || ch == 'c') {
+                operand1 = pop(&stack);
+                switch (ch) {
+                case '!':
+                    result = 1;
+                    for (int j = 1; j <= operand1; j++) {
+                        result *= j;
+                    }
+                    break;
+                case 'q':
+                    result = sqrt(operand1);
+                    break;
+                case 's':
+                    result = sin(operand1);
+                    break;
+                case 'c':
+                    result = cos(operand1);
+                    break;
+                default:
+                    printf("Ошибка: неподдерживаемый оператор\n");
+                    return 0;
+                }
+            }
+            else {
+                operand2 = pop(&stack);
+                operand1 = pop(&stack);
+                switch (ch) {
+                case '+':
+                    result = operand1 + operand2;
+                    break;
+                case '-':
+                    result = operand1 - operand2;
+                    break;
+                case '*':
+                    result = operand1 * operand2;
+                    break;
+                case '/':
+                    result = operand1 / operand2;
+                    break;
+                case '^':
+                    result = pow(operand1, operand2);
+                    break;
+                default:
+                    printf("Ошибка: неподдерживаемый оператор\n");
+                    return 0;
+                }
+            }
+            push(&stack, result);
+        }
+        else {
+            printf("Ошибка: неправильный символ в постфиксной записи\n");
+            return 0;
+        }
+    }
+
+    result = pop(&stack);
+    if (!isEmpty(&stack)) {
+        printf("Ошибка: неправильное выражение\n");
+        return 0;
+    }
+
+    return result;
+}
+
+
+int main() {
+    setlocale(LC_ALL, "rus");
+    char infix[MAX_SIZE];
+    char postfix[MAX_SIZE];
+    printf("q - квадратный корень, s - синус, c - косинус, на вход принимает целые числа\n");
+
+    printf("Введите выражение: ");
+    fgets(infix, sizeof(infix), stdin);
+    infix[strlen(infix) - 1] = '\0';
+
+    infixToPostfix(infix, postfix);
+    //printf("Постфиксная запись: %s\n", postfix);
+
+    float result = evaluatePostfix(postfix);
+    printf("Результат: %.2f\n", result);
+
+    return 0;
+}
 
 
 
@@ -86,200 +330,3 @@
 
 
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <locale.h>
-
-typedef struct {
-    char *from; // что ищем
-    char *to;   // на что заменяем
-} Rule;
-
-typedef enum {
-    TOKEN_NONE = 0,
-    TOKEN_WORD = 1,
-    TOKEN_DELIM = 2
-} TokenType;
-
-static void *xrealloc(void *p, size_t n) {
-    void *q = realloc(p, n);
-    if (!q) {
-        perror("realloc");
-        exit(1);
-    }
-    return q;
-}
-
-static char *read_line(FILE *f) {
-    // Читает строку до '\n' (без '\n'), возвращает malloc'd строку или NULL на EOF.
-    size_t cap = 64, len = 0;
-    char *buf = (char*)malloc(cap);
-    if (!buf) {
-        perror("malloc");
-        exit(1);
-    }
-
-    int ch;
-    while ((ch = fgetc(f)) != EOF) {
-        if (ch == '\n') break;
-        if (ch == '\r') {
-            // Windows CRLF: откусываем '\r' в конце
-            continue;
-        }
-        if (len + 1 >= cap) {
-            cap *= 2;
-            buf = (char*)xrealloc(buf, cap);
-        }
-        buf[len++] = (char)ch;
-    }
-
-    if (ch == EOF && len == 0) {
-        free(buf);
-        return NULL;
-    }
-
-    buf[len] = '\0';
-    return buf;
-}
-
-static int is_letter_char(int c) {
-    // По условию: английские и русские буквы.
-    // isalpha работает корректно при подходящей локали (setlocale для LC_CTYPE).
-    return isalpha((unsigned char)c) != 0;
-}
-
-static void flush_word(FILE *out, Rule *rules, size_t rule_count,
-                        char *word, size_t *wlen) {
-    if (*wlen == 0) return;
-
-    word[*wlen] = '\0';
-
-    // Замена с учетом регистра: strcmp.
-    for (size_t i = 0; i < rule_count; i++) {
-        if (strcmp(word, rules[i].from) == 0) {
-            fputs(rules[i].to, out);
-            *wlen = 0;
-            return;
-        }
-    }
-
-    // Не нашли — выводим как есть
-    fwrite(word, 1, *wlen, out);
-    *wlen = 0;
-}
-
-static void free_rules(Rule *rules, size_t n) {
-    if (!rules) return;
-    for (size_t i = 0; i < n; i++) {
-        free(rules[i].from);
-        free(rules[i].to);
-    }
-    free(rules);
-}
-
-int main(int argc, char **argv) {
-    if (argc != 5) {
-        fprintf(stderr,
-            "Usage: %s file1.txt file2.txt file3.txt file4.txt\n", argv[0]);
-        return 1;
-    }
-
-    // Локаль важна для isalpha по кириллице (обычно Windows-1251 + системная локаль).
-    setlocale(LC_CTYPE, "");
-
-    const char *file1 = argv[1];
-    const char *file2 = argv[2];
-    const char *file3 = argv[3];
-    const char *file4 = argv[4];
-
-    FILE *in1 = fopen(file1, "rb");
-    FILE *in2 = fopen(file2, "r");
-    FILE *in3 = fopen(file3, "r");
-    FILE *out = fopen(file4, "wb");
-
-    if (!in1 || !in2 || !in3 || !out) {
-        perror("fopen");
-        if (in1) fclose(in1);
-        if (in2) fclose(in2);
-        if (in3) fclose(in3);
-        if (out) fclose(out);
-        return 1;
-    }
-
-    // Читаем правила построчно: file2[i] -> file3[i]
-    size_t rule_count = 0, rule_cap = 16;
-    Rule *rules = (Rule*)malloc(rule_cap * sizeof(Rule));
-    if (!rules) {
-        perror("malloc");
-        return 1;
-    }
-
-    while (1) {
-        char *a = read_line(in2);
-        char *b = read_line(in3);
-
-        if (!a && !b) break;              // обе EOF
-        if (!a || !b) {
-            fprintf(stderr, "Error: file2 and file3 have different number of lines.\n");
-            free(a);
-            free(b);
-            free_rules(rules, rule_count);
-            fclose(in1); fclose(in2); fclose(in3); fclose(out);
-            return 1;
-        }
-
-        if (rule_count == rule_cap) {
-            rule_cap *= 2;
-            rules = (Rule*)xrealloc(rules, rule_cap * sizeof(Rule));
-        }
-
-        rules[rule_count].from = a;
-        rules[rule_count].to = b;
-        rule_count++;
-    }
-
-    // Проходим file1 и делаем замену “на границах слов”
-    char *word = (char*)malloc(64);
-    if (!word) {
-        perror("malloc");
-        free_rules(rules, rule_count);
-        fclose(in1); fclose(in2); fclose(in3); fclose(out);
-        return 1;
-    }
-
-    size_t wcap = 64, wlen = 0;
-
-    int ch;
-    TokenType t;
-
-    while ((ch = fgetc(in1)) != EOF) {
-        if (is_letter_char(ch)) {
-            t = TOKEN_WORD;
-            if (wlen + 1 >= wcap) {
-                wcap *= 2;
-                word = (char*)xrealloc(word, wcap);
-            }
-            word[wlen++] = (char)ch;
-        } else {
-            t = TOKEN_DELIM;
-            (void)t; // чтобы ясно показать логику: слово не набираем, разделитель выводим
-            flush_word(out, rules, rule_count, word, &wlen);
-            fputc(ch, out); // сохраняем все знаки препинания/пробелы как есть
-        }
-    }
-
-    // добиваем последнее слово
-    flush_word(out, rules, rule_count, word, &wlen);
-
-    free(word);
-    free_rules(rules, rule_count);
-
-    fclose(in1);
-    fclose(in2);
-    fclose(in3);
-    fclose(out);
-
-    return 0;
-}
