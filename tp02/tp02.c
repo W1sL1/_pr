@@ -7,31 +7,26 @@
 // Объединение для представления 32-битного регистра (например, EAX)
 // Позволяет обращаться к частям регистра: 32 бита, 16 бит (AX) или 8 бит (AL/AH)
 typedef union {
-    uint32_t dword;   // Весь регистр (32 бита)
+    // Весь регистр (32 бита)
+    uint32_t dword;   
     struct {
-        uint16_t lo;  // Младшие 16 бит
-        uint16_t hi;  // Старшие 16 бит
+        // Младшие 16 бит   // Старшие 16 бит 
+        uint16_t lo;        uint16_t hi;  
     } w;
     struct {
-        uint8_t lo;   // Младшие 8 бит (напр. AL)
-        uint8_t hi;   // Следующие 8 бит (напр. AH)
-        uint16_t hi16;
+        // Младшие 8 бит (напр. AL)  // Следующие 8 бит (напр. AH)
+        uint8_t lo;   uint8_t hi;   uint16_t hi16;
     } b;
 } reg32_u;
 // Структура состояния процессора
 typedef struct {
-    reg32_u eax;
-    reg32_u ecx;
-    reg32_u edx;
-    uint32_t eip; // Указатель на текущую инструкцию
+    reg32_u eax;    reg32_u ecx;
+    reg32_u edx;    uint32_t eip; // Указатель на текущую инструкцию
 } cpu_t;
 // Перечисление типов операндов
 typedef enum {
-    OP_NONE,
-    OP_REG8,
-    OP_REG16,
-    OP_REG32,
-    OP_IMM     // Константа (Immediate value)
+    OP_NONE, OP_REG8, OP_REG16,
+    OP_REG32, OP_IMM // Константа (Immediate value)
 } op_type_t;
 // Структура для универсальной работы с операндом (регистр или число)
 typedef struct {
