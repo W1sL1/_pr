@@ -1,29 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 #include <ctype.h>
+#include <math.h>
+#include <stdbool.h>
 
-// --- ТИПЫ ДАННЫХ И ЛЕКСЕМ (ТОКЕНОВ) ---
+// --- Определение типов данных для токенов ---
 
 typedef enum {
     TOKEN_NUMBER,
+    TOKEN_VARIABLE,
     TOKEN_OPERATOR,
     TOKEN_FUNCTION,
-    TOKEN_VARIABLE,
     TOKEN_LPAREN,
-    TOKEN_RPAREN,
-    TOKEN_NONE
+    TOKEN_RPAREN
 } TokenType;
 
 typedef struct {
     TokenType type;
-    double value;       // Для чисел
-    char str[32];       // Для функций, переменных и операторов (как строка для удобства)
-    char op;            // Для операторов (+, -, *, /, ^, !, ~)
+    double value;
+    char str[32]; // Хранит имя переменной, функции или символ оператора
 } Token;
 
-// --- СТРУКТУРЫ ДАННЫХ: УЗЕЛ, СТЕК И ОЧЕРЕДЬ НА БАЗЕ СВЯЗНЫХ СПИСКОВ ---
+// --- Структуры для линейных списков (Стек и Очередь) ---
 
 typedef struct Node {
     Token data;
@@ -35,357 +34,331 @@ typedef struct {
 } Stack;
 
 typedef struct {
-    Node* head;
-    Node* tail;
+    Node* front;
+    Node* rear;
 } Queue;
 
-// Функции для работы со Стеком
+// --- Базовые операции со Стеком ---
+
 void initStack(Stack* s) {
     s->top = NULL;
 }
 
-int isStackEmpty(Stack* s) {
+bool isEmptyStack(Stack* s) {
     return s->top == NULL;
 }
 
-void push(Stack* s, Token t) {
+void push(Stack* s, Token data) {
     Node* newNode = (Node*)malloc(sizeof(Node));
-    newNode->data = t;
+    newNode->data = data;
     newNode->next = s->top;
     s->top = newNode;
 }
 
 Token pop(Stack* s) {
-    if (isStackEmpty(s)) {
-        Token empty = {TOKEN_NONE, 0, "", 0};
+    if (isEmptyStack(s)) {
+        Token empty = {0};
         return empty;
     }
     Node* temp = s->top;
-    Token popped = temp->data;
-    s->top = temp->next;
+    Token data = temp->data;
+    s->top = s->top->next;
     free(temp);
-    return popped;
+    return data;
 }
 
-Token peek(Stack* s) {
-    if (isStackEmpty(s)) {
-        Token empty = {TOKEN_NONE, 0, "", 0};
+Token peekStack(Stack* s) {
+    if (isEmptyStack(s)) {
+        Token empty = {0};
         return empty;
     }
     return s->top->data;
 }
 
-// Функции для работы с Очередью
+// --- Базовые операции с Очередью ---
+
 void initQueue(Queue* q) {
-    q->head = NULL;
-    q->tail = NULL;
+    q->front = q->rear = NULL;
 }
 
-int isQueueEmpty(Queue* q) {
-    return q->head == NULL;
+bool isEmptyQueue(Queue* q) {
+    return q->front == NULL;
 }
 
-void enqueue(Queue* q, Token t) {
+void enqueue(Queue* q, Token data) {
     Node* newNode = (Node*)malloc(sizeof(Node));
-    newNode->data = t;
+    newNode->data = data;
     newNode->next = NULL;
-    if (isQueueEmpty(q)) {
-        q->head = newNode;
-        q->tail = newNode;
-    } else {
-        q->tail->next = newNode;
-        q->tail = newNode;
+    if (q->rear == NULL) {
+        q->front = q->rear = newNode;
+        return;
     }
+    q->rear->next = newNode;
+    q->rear = newNode;
 }
 
 Token dequeue(Queue* q) {
-    if (isQueueEmpty(q)) {
-        Token empty = {TOKEN_NONE, 0, "", 0};
+    if (isEmptyQueue(q)) {
+        Token empty = {0};
         return empty;
     }
-    Node* temp = q->head;
-    Token dequeued = temp->data;
-    q->head = temp->next;
-    if (q->head == NULL) {
-        q->tail = NULL;
+    Node* temp = q->front;
+    Token data = temp->data;
+    q->front = q->front->next;
+    if (q->front == NULL) {
+        q->rear = NULL;
     }
     free(temp);
-    return dequeued;
+    return data;
 }
 
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ АЛГОРИТМА ---
+// --- Вспомогательные функции для парсинга и алгоритма ---
 
-// Приоритет операторов
 int getPrecedence(char op) {
-    if (op == '!') return 5;
-    if (op == '~') return 4; // Унарный минус
-    if (op == '^') return 3;
-    if (op == '*' || op == '/') return 2;
     if (op == '+' || op == '-') return 1;
+    if (op == '*' || op == '/') return 2;
+    if (op == '^') return 3;
+    if (op == '_') return 4; // Унарный минус
+    if (op == '!') return 5; // Факториал
     return 0;
 }
 
-// Проверка на правоассоциативность
-int isRightAssociative(char op) {
-    return (op == '^' || op == '~');
+bool isRightAssociative(char op) {
+    return op == '^' || op == '_';
 }
 
-// Распознавание функций
-int isFunction(const char* str) {
-    return (strcmp(str, "sin") == 0 || strcmp(str, "cos") == 0 ||
-            strcmp(str, "tg") == 0 || strcmp(str, "ctg") == 0 ||
-            strcmp(str, "arcsin") == 0 || strcmp(str, "arccos") == 0 ||
-            strcmp(str, "sqrt") == 0);
+bool isFunction(const char* name) {
+    return strcmp(name, "sin") == 0 || strcmp(name, "cos") == 0 ||
+            strcmp(name, "tg") == 0 || strcmp(name, "ctg") == 0 ||
+            strcmp(name, "arcsin") == 0 || strcmp(name, "arccos") == 0 ||
+            strcmp(name, "sqrt") == 0;
 }
 
-// --- ТОКЕНИЗАЦИЯ И АЛГОРИТМ СОРТИРОВОЧНОЙ СТАНЦИИ ---
-
-void tokenizeAndShuntingYard(const char* expression, Queue* outputQueue) {
-    Stack opStack;
-    initStack(&opStack);
-    TokenType prevType = TOKEN_NONE;
-
-    int i = 0;
-    while (expression[i] != '\0') {
-        if (isspace(expression[i])) {
-            i++;
-            continue;
-        }
-
-        Token t;
-        t.type = TOKEN_NONE;
-        memset(t.str, 0, sizeof(t.str));
-
-        // 1. Парсинг чисел
-        if (isdigit(expression[i]) || expression[i] == '.') {
-            char numBuf[64];
-            int j = 0;
-            while (isdigit(expression[i]) || expression[i] == '.') {
-                numBuf[j++] = expression[i++];
-            }
-            numBuf[j] = '\0';
-            t.type = TOKEN_NUMBER;
-            t.value = atof(numBuf);
-            enqueue(outputQueue, t);
-            prevType = TOKEN_NUMBER;
-            continue;
-        }
-
-        // 2. Парсинг слов (функции или переменные)
-        if (isalpha(expression[i])) {
-            int j = 0;
-            while (isalpha(expression[i]) || isdigit(expression[i])) {
-                t.str[j++] = expression[i++];
-            }
-            t.str[j] = '\0';
-
-            if (isFunction(t.str)) {
-                t.type = TOKEN_FUNCTION;
-                push(&opStack, t);
-            } else {
-                t.type = TOKEN_VARIABLE;
-                enqueue(outputQueue, t);
-            }
-            prevType = t.type;
-            continue;
-        }
-
-        // 3. Скобки
-        if (expression[i] == '(') {
-            t.type = TOKEN_LPAREN;
-            t.op = '(';
-            push(&opStack, t);
-            prevType = TOKEN_LPAREN;
-            i++;
-            continue;
-        }
-
-        if (expression[i] == ')') {
-            while (!isStackEmpty(&opStack) && peek(&opStack).type != TOKEN_LPAREN) {
-                enqueue(outputQueue, pop(&opStack));
-            }
-            if (!isStackEmpty(&opStack)) {
-                pop(&opStack); // Удаляем '(' из стека
-            }
-            if (!isStackEmpty(&opStack) && peek(&opStack).type == TOKEN_FUNCTION) {
-                enqueue(outputQueue, pop(&opStack)); // Перемещаем функцию в очередь
-            }
-            prevType = TOKEN_RPAREN;
-            i++;
-            continue;
-        }
-
-        // 4. Операторы
-        if (strchr("+-*/^!", expression[i])) {
-            t.type = TOKEN_OPERATOR;
-            t.op = expression[i];
-
-            // Определение унарного минуса
-            if (t.op == '-' && (prevType == TOKEN_NONE || prevType == TOKEN_LPAREN || prevType == TOKEN_OPERATOR)) {
-                t.op = '~';
-            }
-
-            // Факториал (постфиксный унарный оператор) идет сразу в очередь
-            if (t.op == '!') {
-                enqueue(outputQueue, t);
-                prevType = TOKEN_OPERATOR;
-                i++;
-                continue;
-            }
-
-            while (!isStackEmpty(&opStack) && peek(&opStack).type == TOKEN_OPERATOR) {
-                char topOp = peek(&opStack).op;
-                if ((!isRightAssociative(t.op) && getPrecedence(t.op) <= getPrecedence(topOp)) ||
-                    (isRightAssociative(t.op) && getPrecedence(t.op) < getPrecedence(topOp))) {
-                    enqueue(outputQueue, pop(&opStack));
-                } else {
-                    break;
-                }
-            }
-            push(&opStack, t);
-            prevType = TOKEN_OPERATOR;
-            i++;
-            continue;
-        }
-
-        i++; // Пропуск неизвестных символов (если есть)
-    }
-
-    // Выталкиваем оставшиеся операторы
-    while (!isStackEmpty(&opStack)) {
-        enqueue(outputQueue, pop(&opStack));
-    }
-}
-
-// --- УПРАВЛЕНИЕ ПЕРЕМЕННЫМИ ---
+// --- Глобальные переменные для хранения пользовательских вводов ---
 
 typedef struct {
     char name[32];
-    double value;
-} Variable;
+    double val;
+} VariableDef;
 
-void promptVariables(Queue* postfixQueue, Variable* vars, int* varCount) {
-    Node* current = postfixQueue->head;
-    while (current != NULL) {
-        if (current->data.type == TOKEN_VARIABLE) {
-            // Проверяем, запрашивали ли мы уже эту переменную
-            int exists = 0;
-            for (int i = 0; i < *varCount; i++) {
-                if (strcmp(vars[i].name, current->data.str) == 0) {
-                    exists = 1;
-                    break;
-                }
-            }
-            // Если переменной нет в списке, запрашиваем
-            if (!exists) {
-                strcpy(vars[*varCount].name, current->data.str);
-                printf("Введите значение для переменной %s: ", current->data.str);
-                scanf("%lf", &vars[*varCount].value);
-                (*varCount)++;
-            }
-        }
-        current = current->next;
-    }
-}
+VariableDef vars[100];
+int var_count = 0;
 
-double getVariableValue(const char* name, Variable* vars, int varCount) {
-    for (int i = 0; i < varCount; i++) {
+double getVariableValue(const char* name) {
+    for (int i = 0; i < var_count; i++) {
         if (strcmp(vars[i].name, name) == 0) {
-            return vars[i].value;
+            return vars[i].val;
         }
     }
     return 0.0;
 }
 
-// --- ВЫЧИСЛЕНИЕ ПОСТФИКСНОГО ВЫРАЖЕНИЯ ---
-
-double evaluatePostfix(Queue* postfixQueue, Variable* vars, int varCount) {
-    Stack evalStack;
-    initStack(&evalStack);
-
-    while (!isQueueEmpty(postfixQueue)) {
-        Token t = dequeue(postfixQueue);
-
-        if (t.type == TOKEN_NUMBER) {
-            push(&evalStack, t);
-        } 
-        else if (t.type == TOKEN_VARIABLE) {
-            t.value = getVariableValue(t.str, vars, varCount);
-            t.type = TOKEN_NUMBER;
-            push(&evalStack, t);
-        }
-        else if (t.type == TOKEN_OPERATOR) {
-            if (t.op == '~') { // Унарный минус
-                Token a = pop(&evalStack);
-                a.value = -a.value;
-                push(&evalStack, a);
-            } else if (t.op == '!') { // Факториал
-                Token a = pop(&evalStack);
-                a.value = tgamma(a.value + 1); // tgamma обобщает факториал
-                push(&evalStack, a);
-            } else {
-                Token b = pop(&evalStack);
-                Token a = pop(&evalStack);
-                Token res = {TOKEN_NUMBER, 0.0, "", 0};
-
-                switch (t.op) {
-                    case '+': res.value = a.value + b.value; break;
-                    case '-': res.value = a.value - b.value; break;
-                    case '*': res.value = a.value * b.value; break;
-                    case '/': res.value = a.value / b.value; break;
-                    case '^': res.value = pow(a.value, b.value); break;
-                }
-                push(&evalStack, res);
-            }
-        }
-        else if (t.type == TOKEN_FUNCTION) {
-            Token a = pop(&evalStack);
-            Token res = {TOKEN_NUMBER, 0.0, "", 0};
-
-            if (strcmp(t.str, "sin") == 0) res.value = sin(a.value);
-            else if (strcmp(t.str, "cos") == 0) res.value = cos(a.value);
-            else if (strcmp(t.str, "tg") == 0) res.value = tan(a.value);
-            else if (strcmp(t.str, "ctg") == 0) res.value = 1.0 / tan(a.value);
-            else if (strcmp(t.str, "arcsin") == 0) res.value = asin(a.value);
-            else if (strcmp(t.str, "arccos") == 0) res.value = acos(a.value);
-            else if (strcmp(t.str, "sqrt") == 0) res.value = sqrt(a.value);
-            
-            push(&evalStack, res);
-        }
-    }
-
-    return pop(&evalStack).value;
-}
-
-// --- ГЛАВНАЯ ФУНКЦИЯ ---
+// --- Основная логика ---
 
 int main() {
-    char expression[256];
-    printf("Лабораторная работа №2: Калькулятор\n");
+    char expr[1024];
     printf("Введите математическое выражение: ");
-    
-    if (fgets(expression, sizeof(expression), stdin) == NULL) {
-        return 1;
+    if (!fgets(expr, sizeof(expr), stdin)) return 1;
+
+    // Убираем символ новой строки
+    expr[strcspn(expr, "\n")] = 0;
+
+    Queue tokens;
+    initQueue(&tokens);
+
+    // 1. Токенизация (Лексический анализ)
+    char* p = expr;
+    bool expect_unary = true; // Флаг для определения унарного минуса
+
+    while (*p) {
+        if (isspace(*p)) {
+            p++;
+            continue;
+        }
+
+        if (isdigit(*p) || *p == '.') {
+            char* end;
+            double val = strtod(p, &end);
+            Token t = {TOKEN_NUMBER, val, ""};
+            enqueue(&tokens, t);
+            p = end;
+            expect_unary = false;
+        } else if (isalpha(*p)) {
+            char name[32];
+            int i = 0;
+            while (isalpha(*p) || isdigit(*p)) {
+                name[i++] = *p++;
+            }
+            name[i] = '\0';
+
+            Token t;
+            strcpy(t.str, name);
+            if (isFunction(name)) {
+                t.type = TOKEN_FUNCTION;
+                expect_unary = true;
+            } else {
+                t.type = TOKEN_VARIABLE;
+                expect_unary = false;
+            }
+            enqueue(&tokens, t);
+        } else if (*p == '(') {
+            Token t = {TOKEN_LPAREN, 0, "("};
+            enqueue(&tokens, t);
+            expect_unary = true;
+            p++;
+        } else if (*p == ')') {
+            Token t = {TOKEN_RPAREN, 0, ")"};
+            enqueue(&tokens, t);
+            expect_unary = false;
+            p++;
+        } else if (strchr("+-*/^!", *p)) {
+            Token t = {TOKEN_OPERATOR, 0, ""};
+            t.str[0] = *p;
+            t.str[1] = '\0';
+
+            if (*p == '-' && expect_unary) {
+                t.str[0] = '_'; // Заменяем унарный минус специальным символом
+            } else if (*p == '+' && expect_unary) {
+                p++;
+                continue; // Игнорируем унарный плюс
+            }
+
+            enqueue(&tokens, t);
+            
+            if (*p != '!') {
+                expect_unary = true;
+            } else {
+                expect_unary = false; // Факториал - постфиксный, за ним не идет унарный оператор
+            }
+            p++;
+        } else {
+            p++; // Игнорируем неизвестные символы
+        }
     }
 
-    // Удаляем символ переноса строки
-    expression[strcspn(expression, "\n")] = 0;
+    // 2. Сбор переменных и запрос значений у пользователя
+    Node* curr = tokens.front;
+    while (curr) {
+        if (curr->data.type == TOKEN_VARIABLE) {
+            bool found = false;
+            for (int i = 0; i < var_count; i++) {
+                if (strcmp(vars[i].name, curr->data.str) == 0) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                strcpy(vars[var_count].name, curr->data.str);
+                printf("Введите значение для переменной %s: ", vars[var_count].name);
+                scanf("%lf", &vars[var_count].val);
+                var_count++;
+            }
+        }
+        curr = curr->next;
+    }
 
-    Queue postfixQueue;
-    initQueue(&postfixQueue);
+    // 3. Алгоритм сортировочной станции (Инфиксная -> Постфиксная)
+    Queue output;
+    initQueue(&output);
+    Stack ops;
+    initStack(&ops);
 
-    // 1. Преобразование в постфиксную нотацию
-    tokenizeAndShuntingYard(expression, &postfixQueue);
+    while (!isEmptyQueue(&tokens)) {
+        Token t = dequeue(&tokens);
 
-    // 2. Обработка переменных (если они есть)
-    Variable vars[50];
-    int varCount = 0;
-    promptVariables(&postfixQueue, vars, &varCount);
+        if (t.type == TOKEN_NUMBER || t.type == TOKEN_VARIABLE) {
+            enqueue(&output, t);
+        } else if (t.type == TOKEN_FUNCTION) {
+            push(&ops, t);
+        } else if (t.type == TOKEN_OPERATOR) {
+            while (!isEmptyStack(&ops) && peekStack(&ops).type == TOKEN_OPERATOR) {
+                Token top = peekStack(&ops);
+                int precT = getPrecedence(t.str[0]);
+                int precTop = getPrecedence(top.str[0]);
 
-    // 3. Вычисление результата
-    double result = evaluatePostfix(&postfixQueue, vars, varCount);
-    
-    printf("Результат: %lf\n", result);
+                if ((!isRightAssociative(t.str[0]) && precT <= precTop) ||
+                    (isRightAssociative(t.str[0]) && precT < precTop)) {
+                    enqueue(&output, pop(&ops));
+                } else {
+                    break;
+                }
+            }
+            push(&ops, t);
+        } else if (t.type == TOKEN_LPAREN) {
+            push(&ops, t);
+        } else if (t.type == TOKEN_RPAREN) {
+            while (!isEmptyStack(&ops) && peekStack(&ops).type != TOKEN_LPAREN) {
+                enqueue(&output, pop(&ops));
+            }
+            if (!isEmptyStack(&ops) && peekStack(&ops).type == TOKEN_LPAREN) {
+                pop(&ops); // Выбрасываем '('
+            }
+            if (!isEmptyStack(&ops) && peekStack(&ops).type == TOKEN_FUNCTION) {
+                enqueue(&output, pop(&ops));
+            }
+        }
+    }
+
+    while (!isEmptyStack(&ops)) {
+        enqueue(&output, pop(&ops));
+    }
+
+    // 4. Вычисление постфиксного выражения
+    Stack eval;
+    initStack(&eval);
+
+    while (!isEmptyQueue(&output)) {
+        Token t = dequeue(&output);
+
+        if (t.type == TOKEN_NUMBER) {
+            push(&eval, t);
+        } else if (t.type == TOKEN_VARIABLE) {
+            Token numToken = {TOKEN_NUMBER, getVariableValue(t.str), ""};
+            push(&eval, numToken);
+        } else if (t.type == TOKEN_OPERATOR) {
+            char op = t.str[0];
+            if (op == '!' || op == '_') {
+                double a = pop(&eval).value;
+                double res = 0;
+                if (op == '!') res = tgamma(a + 1); // Факториал через Гамма-функцию для вещественных чисел
+                else if (op == '_') res = -a;       // Унарный минус
+                Token resToken = {TOKEN_NUMBER, res, ""};
+                push(&eval, resToken);
+            } else {
+                double b = pop(&eval).value;
+                double a = pop(&eval).value;
+                double res = 0;
+                switch (op) {
+                    case '+': res = a + b; break;
+                    case '-': res = a - b; break;
+                    case '*': res = a * b; break;
+                    case '/': res = a / b; break;
+                    case '^': res = pow(a, b); break;
+                }
+                Token resToken = {TOKEN_NUMBER, res, ""};
+                push(&eval, resToken);
+            }
+        } else if (t.type == TOKEN_FUNCTION) {
+            double a = pop(&eval).value;
+            double res = 0;
+            if (strcmp(t.str, "sin") == 0) res = sin(a);
+            else if (strcmp(t.str, "cos") == 0) res = cos(a);
+            else if (strcmp(t.str, "tg") == 0) res = tan(a);
+            else if (strcmp(t.str, "ctg") == 0) res = 1.0 / tan(a);
+            else if (strcmp(t.str, "arcsin") == 0) res = asin(a);
+            else if (strcmp(t.str, "arccos") == 0) res = acos(a);
+            else if (strcmp(t.str, "sqrt") == 0) res = sqrt(a);
+            
+            Token resToken = {TOKEN_NUMBER, res, ""};
+            push(&eval, resToken);
+        }
+    }
+
+    if (!isEmptyStack(&eval)) {
+        printf("Результат: %f\n", pop(&eval).value);
+    } else {
+        printf("Ошибка: некорректное выражение.\n");
+    }
 
     return 0;
 }
