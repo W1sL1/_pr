@@ -1,65 +1,58 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include <locale.h>      // Для setlocale() — установки локали (поддержка русских букв)
-#include <stdio.h>       // Для работы с файлами (fopen, fgetwc и т.д.)
-#include <wchar.h>       // Для широких символов (wchar_t, wprintf, wscanf)
-#include <wctype.h>      // Для towupper(), iswlower() — работа с регистром широких символов
+#include <locale.h>
+#include <stdio.h>
+#include <wchar.h>
+#include <wctype.h>
 
-#define MAX_TEXT 20000      // Максимальная длина входного текста
-#define MAX_WORDS 2000      // Максимальное количество слов
-#define MAX_WORD_LEN 64     // Максимальная длина одного слова
-#define MAX_HISTORY 100     // Максимальное количество сохранённых состояний замен для отката (undo)
+#define MAX_TEXT 20000
+#define MAX_WORDS 2000
+#define MAX_WORD_LEN 64
+#define MAX_HISTORY 100
 
-// Таблица заглавных русских букв в алфавитном порядке (индекс = позиция в алфавите)
+
 static const wchar_t RU_UP[33] = {
         L'А', L'Б', L'В', L'Г', L'Д', L'Е', L'Ё', L'Ж', L'З', L'И', L'Й',
         L'К', L'Л', L'М', L'Н', L'О', L'П', L'Р', L'С', L'Т', L'У', L'Ф',
         L'Х', L'Ц', L'Ч', L'Ш', L'Щ', L'Ъ', L'Ы', L'Ь', L'Э', L'Ю', L'Я'
 };
 
-// Частотный порядок букв русского языка (от самой частой к самой редкой)
 static wchar_t RU_FREQ_ORDER[] = L"ОЕАИНТСРВЛКМДПУЯЫЬГЗБЧЙХЖШЮЦЩЭФЪЁ";
 
-// Возвращает индекс русской буквы в алфавите (0..32), или -1, если символ — не русская буква
 int ru_index(wchar_t ch) {
     int i;
-    ch = towupper(ch);                  // Приводим к верхнему регистру
+    ch = towupper(ch);
     for (i = 0; i < 33; i++) {
         if (RU_UP[i] == ch) return i;
     }
     return -1;
 }
 
-// Проверяет, является ли символ русской буквой
 int is_ru(wchar_t ch) {
     return ru_index(ch) >= 0;
 }
 
 // ---------------- Хранение текста ----------------
 
-wchar_t text[MAX_TEXT + 1];   // Массив для хранения исходного зашифрованного текста
-int text_len = 0;              // Реальная длина текста
+wchar_t text[MAX_TEXT + 1];
+int text_len = 0;
 
 // ---------------- Слова ----------------
 
-// Структура для хранения информации о слове: начальный индекс в text и длина
 typedef struct {
     int start; // индекс в text
     int len;   // длина
 } Word;
 
-Word words[MAX_WORDS];   // Массив всех найденных слов
-int word_count = 0;       // Количество найденных слов
+Word words[MAX_WORDS];
+int word_count = 0;
 
-// Разбивает текст на слова (последовательности русских букв) и заполняет массив words
 void extract_words() {
     int i = 0;
     word_count = 0;
     while (i < text_len && word_count < MAX_WORDS) {
-        // Пропускаем всё, что не является русской буквой
         while (i < text_len && !is_ru(text[i])) i++;
         if (i >= text_len) break;
         int start = i;
-        // Идём до конца слова
         while (i < text_len && is_ru(text[i])) i++;
         int len = i - start;
         if (len > 0 && len <= MAX_WORD_LEN) {
@@ -72,12 +65,11 @@ void extract_words() {
 
 // ---------------- Замены и история ----------------
 
-wchar_t mapping_cur[33];           // Текущее соответствие: crypt_index -> открытая буква (0, если не задана)
-wchar_t history[MAX_HISTORY][33];  // Массив для хранения истории состояний mapping_cur
-int history_pos = 0;               // Текущая позиция в истории (индекс последнего состояния)
-int history_size = 1;              // Сколько всего состояний сохранено (не используется строго, но полезно)
+wchar_t mapping_cur[33];                // текущее соответствие: крипто -> открытая, 0 если нет
+wchar_t history[MAX_HISTORY][33];       // история состояний
+int history_pos = 0;                    // номер текущего
+int history_size = 1;                   // сколько реально сохранено
 
-// Инициализирует таблицу замен и историю (обнуляет, сохраняет начальное состояние)
 void mapping_init() {
     int i, j;
     for (i = 0; i < 33; i++) mapping_cur[i] = 0;
@@ -89,16 +81,14 @@ void mapping_init() {
     history_size = 1;
 }
 
-// Сохраняет текущее состояние mapping_cur в историю (перед изменением)
 void history_save() {
     int i;
-    if (history_pos + 1 >= MAX_HISTORY) return;   // История переполнена — не сохраняем
+    if (history_pos + 1 >= MAX_HISTORY) return;
     history_pos++;
     history_size = history_pos + 1;
     for (i = 0; i < 33; i++) history[history_pos][i] = mapping_cur[i];
 }
 
-// Откатывает последнее изменение (undo)
 void history_undo() {
     int i;
     if (history_pos == 0) {
@@ -110,7 +100,6 @@ void history_undo() {
     wprintf(L"Откат выполнен.\n");
 }
 
-// Задаёт замену: шифрованная буква cipher -> открытая буква plain
 void set_mapping(wchar_t cipher, wchar_t plain) {
     int ci = ru_index(cipher);
     int i;
@@ -118,15 +107,13 @@ void set_mapping(wchar_t cipher, wchar_t plain) {
         wprintf(L"Неверные буквы.\n");
         return;
     }
-    // Удаляем предыдущую замену, которая вела на эту же открытую букву (однозначность)
     for (i = 0; i < 33; i++) {
         if (mapping_cur[i] == towupper(plain)) mapping_cur[i] = 0;
     }
     mapping_cur[ci] = towupper(plain);
-    history_save();   // Сохраняем состояние после изменения
+    history_save();
 }
 
-// Удаляет замену для заданной шифрованной буквы
 void unset_mapping(wchar_t cipher) {
     int ci = ru_index(cipher);
     if (ci < 0) {
@@ -137,18 +124,16 @@ void unset_mapping(wchar_t cipher) {
     history_save();
 }
 
-// Расшифровывает один символ с учётом текущих замен (сохраняет регистр)
 wchar_t decrypt_ch(wchar_t ch) {
     int idx = ru_index(ch);
-    if (idx < 0) return ch;                 // Не буква — без изменений
-    if (mapping_cur[idx] == 0) return ch;   // Замена не задана — оставляем как есть
+    if (idx < 0) return ch;
+    if (mapping_cur[idx] == 0) return ch;
     if (iswlower(ch)) return towlower(mapping_cur[idx]);
     return mapping_cur[idx];
 }
 
 // ---------------- Частоты ----------------
 
-// Выводит частоту встречаемости каждой русской буквы в исходном тексте
 void cmd_freq() {
     long cnt[33];
     long total = 0;
@@ -167,7 +152,6 @@ void cmd_freq() {
     }
 }
 
-// Предлагает вероятные замены на основе частотного анализа (сортировка по убыванию частоты)
 void cmd_suggest() {
     long cnt[33];
     int order[33];
@@ -176,12 +160,11 @@ void cmd_suggest() {
         cnt[i] = 0;
         order[i] = i;
     }
-    // Подсчёт частот
     for (i = 0; i < text_len; i++) {
         int idx = ru_index(text[i]);
         if (idx >= 0) cnt[idx]++;
     }
-    // Пузырьковая сортировка индексов букв по убыванию частоты
+    // очень простой пузырьковый сорт по убыванию
     for (i = 0; i < 33; i++) {
         for (j = i + 1; j < 33; j++) {
             if (cnt[order[j]] > cnt[order[i]]) {
@@ -199,7 +182,6 @@ void cmd_suggest() {
 
 // ---------------- Печать ----------------
 
-// Показывает исходный текст и текущий расшифрованный текст
 void cmd_show() {
     int i;
     wprintf(L"--- Криптограмма ---\n");
@@ -211,7 +193,6 @@ void cmd_show() {
 
 // ---------------- Слова по длине ----------------
 
-// Выводит все слова, сгруппированные по длине
 void cmd_wordslen() {
     int max_len = 0;
     int i;
@@ -238,7 +219,6 @@ void cmd_wordslen() {
 
 // ---------------- Слова по числу неизвестных букв ----------------
 
-// Возвращает количество букв в слове, для которых ещё не задана замена
 int word_unknown(int idx) {
     int i, u = 0;
     for (i = 0; i < words[idx].len; i++) {
@@ -249,7 +229,6 @@ int word_unknown(int idx) {
     return u;
 }
 
-// Выводит слова, сгруппированные по количеству ещё не расшифрованных букв
 void cmd_wordsunk() {
     int max_u = 0;
     int i;
@@ -277,7 +256,6 @@ void cmd_wordsunk() {
 
 // ---------------- Печать замены ----------------
 
-// Выводит текущую таблицу замен (только заданные пары)
 void cmd_mapping() {
     int i;
     wprintf(L"Текущие замены:\n");
@@ -288,7 +266,6 @@ void cmd_mapping() {
     }
 }
 
-// Выводит справку по доступным командам
 void cmd_menu() {
     wprintf(L"Команды:\n");
     wprintf(L"freq        - частотный анализ\n");
@@ -310,16 +287,15 @@ int main() {
     wchar_t a, b;
     int i;
 
-    setlocale(LC_ALL, "");   // Устанавливаем локаль для корректной работы с русскими символами
+    setlocale(LC_ALL, "");
 
-    // Открываем файл testText.txt в текущей папке (UTF-8)
+    // Читаем исходный текст из файла testText.txt в текущей папке.
     FILE *f = _wfopen(L"testText.txt", L"r, ccs=UTF-8");
     if (!f) {
         wprintf(L"Не удалось открыть файл testText.txt\n");
         return 1;
     }
 
-    // Читаем файл посимвольно в массив text
     text_len = 0;
     while (text_len < MAX_TEXT - 1) {
         wint_t c = fgetwc(f);
@@ -328,15 +304,14 @@ int main() {
     }
     fclose(f);
 
-    text[text_len] = 0;      // Завершающий нуль-символ (не обязателен, но аккуратно)
+    text[text_len] = 0;
 
-    extract_words();         // Разбиваем текст на слова
-    mapping_init();          // Инициализируем таблицу замен и историю
+    extract_words();
+    mapping_init();
 
     wprintf(L"Символов: %d, слов: %d\n", text_len, word_count);
-    cmd_menu();              // Показываем меню команд
+    cmd_menu();
 
-    // Основной цикл обработки команд
     for (;;) {
         wprintf(L"\n> ");
         if (wscanf(L"%63ls", cmd) != 1) break;
