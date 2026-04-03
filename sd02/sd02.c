@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <math.h>
 #include <stdbool.h>
+// gcc sd02.c -o sd02 -lm
+// ./sd02
 
 // --- Определение типов данных для токенов ---
 
