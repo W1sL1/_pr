@@ -63,11 +63,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // argv[1] — входной текстовый файл
-    // argv[2] — файл со словами, которые нужно заменить
-    // argv[3] — файл со словами-заменами
-    // argv[4] — выходной файл
-
     int count2 = 0, count3 = 0;
     char **words2 = read_words(argv[2], &count2); // читаем слова для замены
     char **words3 = read_words(argv[3], &count3); // читаем слова-замены
