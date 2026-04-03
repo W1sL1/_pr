@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+// gcc sd01.c -o sd01
+// ./sd01 f1.txt f2.txt f3.txt f4.txt
 
 // Структура для хранения пар слов (что меняем -> на что меняем)
 typedef struct {
