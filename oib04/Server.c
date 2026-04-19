@@ -5,7 +5,7 @@
 #include <winsock2.h>
 #pragma comment(lib, "ws2_32.lib")
 #define Error -1
-#define Port 1234                     
+#define Port 12345                     
 
 int main() {
     WSADATA Ws;
@@ -13,14 +13,15 @@ int main() {
     char FileName[100] = { 0 };
 
     if (WSAStartup(MAKEWORD(2, 2), &Ws)) {
-        printf("Error WinSock version initializaion");
+        printf("Error WinSock version initialization\n");
         return Error;
     }
 
     SOCKET Socket = socket(AF_INET, SOCK_STREAM, 0);
     if (Socket == INVALID_SOCKET) {
-        printf("Error initialization socket");
+        printf("Error initialization socket. Error: %d\n", WSAGetLastError());
         closesocket(Socket);
+        WSACleanup();
         return Error;
     }
 
@@ -28,28 +29,46 @@ int main() {
     memset(&SockAddr, 0, sizeof(SockAddr));
     SockAddr.sin_family = AF_INET;
     SockAddr.sin_port = htons(Port);
-    bind(Socket, (struct sockaddr*)&SockAddr, sizeof(SockAddr));
-
-    if (listen(Socket, 1) == SOCKET_ERROR) {
-        printf("Listen failed\n");
+    SockAddr.sin_addr.s_addr = INADDR_ANY;  // вместо 0
+    
+    if (bind(Socket, (struct sockaddr*)&SockAddr, sizeof(SockAddr)) == SOCKET_ERROR) {
+        printf("Bind failed. Error code: %d\n", WSAGetLastError());
         closesocket(Socket);
+        WSACleanup();
         return Error;
     }
+    
+    printf("Bind successful on port %d\n", Port);
+
+    if (listen(Socket, 1) == SOCKET_ERROR) {
+        printf("Listen failed. Error code: %d\n", WSAGetLastError());
+        closesocket(Socket);
+        WSACleanup();
+        return Error;
+    }
+    
+    printf("Listen successful. Waiting for connection...\n");
 
     SOCKET ClientSocket;
     SOCKADDR_IN ClientSockAddr;
     int ClientSASize = sizeof(ClientSockAddr);
-    printf("Waiting for connection...\n");
 
-    if (ClientSocket = accept(Socket, (struct sockaddr*)&ClientSockAddr, &ClientSASize)) {
-        printf("The connection is established\n");
+    ClientSocket = accept(Socket, (struct sockaddr*)&ClientSockAddr, &ClientSASize);
+    if (ClientSocket == INVALID_SOCKET) {
+        printf("Accept failed. Error code: %d\n", WSAGetLastError());
+        closesocket(Socket);
+        WSACleanup();
+        return Error;
     }
+    
+    printf("The connection is established\n");
 
     while (1) {
         memset(FileName, 0, sizeof(FileName));
         printf("Enter the file name. If you want to exit the program, write \"Exit\":\n");
         
-        if(gets(FileName) == 0) return EXIT_FAILURE;
+        if(fgets(FileName, sizeof(FileName), stdin) == NULL) return EXIT_FAILURE;
+        FileName[strcspn(FileName, "\n")] = 0;  // убираем \n
         
         if (strcmp(FileName, "Exit") == 0) {
             send(ClientSocket, "Exit", 5, 0);
@@ -61,7 +80,8 @@ int main() {
         printf("%s\n", Res);
     }
 
-    closesocket(Socket);
     closesocket(ClientSocket);
+    closesocket(Socket);
+    WSACleanup();
     return 0;
 }

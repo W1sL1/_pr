@@ -6,7 +6,7 @@
 #include <windows.h>     // вместо dos.h и winreg.h
 #pragma comment(lib, "ws2_32.lib")
 #define Error -1
-#define Port 1234       
+#define Port 12345       
 #define IP "127.0.0.1"   // localhost - работает через проброс портов
 
 // Функция добавления программы в автозагрузку и копирования в системную папку
