@@ -5,7 +5,7 @@
 #include <winsock2.h>
 #pragma comment(lib, "ws2_32.lib")
 #define Error -1
-#define Port 12345                     
+#define Port 1234                     
 
 int main() {
     WSADATA Ws;

