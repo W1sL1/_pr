@@ -1,72 +1,61 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <limits.h>
 
-#define INF LLONG_MAX
+#define MAX_N 100000  // максимальный размер при необходимости, можно увеличить
 
 int main() {
     int n;
-    if (scanf("%d", &n) != 1) return 0;
-
-    long long *a = (long long *)malloc(n * sizeof(long long));
-    long long *min_cost = (long long *)malloc(n * sizeof(long long));
-    long long *ways = (long long *)malloc(n * sizeof(long long));
-
-    for (int i = 0; i < n; i++) {
+    scanf("%d", &n);
+    
+    long long a[MAX_N + 1];
+    for (int i = 1; i <= n; ++i) {
         scanf("%lld", &a[i]);
-        min_cost[i] = INF; // Изначально все клетки недостижимы
-        ways[i] = 0;
     }
-
-    // Начальная точка
-    if (a[0] != -1) {
-        min_cost[0] = a[0];
-        ways[0] = 1;
-    } else {
-        // Если первая клетка запрещена, пути нет
+    
+    // Если стартовая клетка запрещена, путь невозможен
+    if (a[1] == -1) {
         printf("-1\n");
         return 0;
     }
-
-    for (int i = 1; i < n; i++) {
-        if (a[i] == -1) continue; // Пропускаем запрещенные клетки
-
-        long long best_prev_cost = INF;
-
-        // Смотрим на 1, 2 и 3 клетки назад
-        for (int j = 1; j <= 3; j++) {
-            int prev = i - j;
-            if (prev >= 0 && min_cost[prev] != INF) {
-                if (min_cost[prev] < best_prev_cost) {
-                    best_prev_cost = min_cost[prev];
-                }
-            }
-        }
-
-        // Если нашли хотя бы один путь до текущей клетки
-        if (best_prev_cost != INF) {
-            min_cost[i] = best_prev_cost + a[i];
-            
-            // Считаем количество путей, которые дают эту минимальную стоимость
-            for (int j = 1; j <= 3; j++) {
-                int prev = i - j;
-                if (prev >= 0 && min_cost[prev] == best_prev_cost) {
+    
+    // dp[i] - минимальная стоимость добраться до клетки i
+    // ways[i] - количество способов достичь эту стоимость
+    long long dp[MAX_N + 1];
+    long long ways[MAX_N + 1];
+    
+    const long long INF = LLONG_MAX / 2;  // достаточно большое число, чтобы избежать переполнения
+    
+    for (int i = 1; i <= n; ++i) {
+        dp[i] = INF;
+        ways[i] = 0;
+    }
+    
+    dp[1] = a[1];
+    ways[1] = 1;
+    
+    for (int i = 2; i <= n; ++i) {
+        if (a[i] == -1) continue;  // клетка запрещена
+        
+        for (int jump = 1; jump <= 3; ++jump) {
+            int prev = i - jump;
+            if (prev >= 1 && dp[prev] != INF) {
+                long long cost = dp[prev] + a[i];
+                if (cost < dp[i]) {
+                    dp[i] = cost;
+                    ways[i] = ways[prev];
+                } else if (cost == dp[i]) {
                     ways[i] += ways[prev];
                 }
             }
         }
     }
-
-    // Вывод результата
-    if (min_cost[n - 1] == INF) {
+    
+    if (dp[n] == INF) {
         printf("-1\n");
     } else {
-        printf("%lld\n%lld\n", min_cost[n - 1], ways[n - 1]);
+        printf("%lld\n", dp[n]);
+        printf("%lld\n", ways[n]);
     }
-
-    free(a);
-    free(min_cost);
-    free(ways);
-
+    
     return 0;
 }

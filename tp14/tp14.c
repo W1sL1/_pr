@@ -1,67 +1,88 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#define MAX 20
+#define MAX_NODES 10
+#define MAX_PATHS 100
 
-int n = 0; // Количество узлов
-int adj[MAX][MAX]; // Матрица смежности
-int visited[MAX]; // Массив посещенных узлов
-int path[MAX]; // Массив для хранения текущего пути
-int path_index = 0;
-int found_any = 0; // Флаг: найден ли хотя бы один путь
+int adj[MAX_NODES][MAX_NODES];
+int visited[MAX_NODES];
+int n = 4; // Размер матрицы
 
-// Функция поиска всех путей (DFS)
-void findAllPaths(int u, int destination) {
-    // Помечаем текущий узел как посещенный и добавляем в путь
+// Структура для хранения найденных путей
+typedef struct {
+    int nodes[MAX_NODES];
+    int length;
+} Path;
+
+Path all_paths[MAX_PATHS];
+int path_count = 0;
+
+// DFS для поиска всех путей
+void findPaths(int u, int target, int current_path[], int depth) {
     visited[u] = 1;
-    path[path_index] = u + 1; // +1 для вывода в 1-индексации
-    path_index++;
+    current_path[depth] = u;
 
-    // Если достигли целевого узла
-    if (u == destination) {
-        found_any = 1;
-        for (int i = 0; i < path_index; i++) {
-            printf("%d%s", path[i], (i == path_index - 1 ? "" : ","));
+    if (u == target) {
+        // Сохраняем найденный путь в массив
+        all_paths[path_count].length = depth + 1;
+        for (int i = 0; i <= depth; i++) {
+            all_paths[path_count].nodes[i] = current_path[i];
         }
-        printf("\n");
+        path_count++;
     } else {
-        // Рекурсивно идем по всем соседям
         for (int v = 0; v < n; v++) {
             if (adj[u][v] == 1 && !visited[v]) {
-                findAllPaths(v, destination);
+                findPaths(v, target, current_path, depth + 1);
             }
         }
     }
+    visited[u] = 0; // Backtracking
+}
 
-    // Обратный ход (backtracking): снимаем пометку и уменьшаем длину пути
-    path_index--;
-    visited[u] = 0;
+// Функция для сортировки путей (сначала по длине, потом по составу)
+int comparePaths(const void *a, const void *b) {
+    Path *pathA = (Path *)a;
+    Path *pathB = (Path *)b;
+    
+    if (pathA->length != pathB->length) {
+        return pathA->length - pathB->length;
+    }
+    for (int i = 0; i < pathA->length; i++) {
+        if (pathA->nodes[i] != pathB->nodes[i]) {
+            return pathA->nodes[i] - pathB->nodes[i];
+        }
+    }
+    return 0;
 }
 
 int main() {
-    printf("Введите количество узлов (max %d): ", MAX);
-    if (scanf("%d", &n) != 1) return 1;
-
-    printf("Введите матрицу смежности (строка за строкой, можно с запятыми):\n");
+    // Ввод матрицы 4x4
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            // Читаем число и пропускаем символ-разделитель (запятую или пробел)
-            if (scanf("%d%*c", &adj[i][j]) == 0) break;
+            scanf("%d", &adj[i][j]);
+            if (getchar() == ',') ; // Пропуск запятой
         }
     }
 
-    int start_node, end_node;
-    printf("Введите начальный и конечный узлы: ");
-    scanf("%d %d", &start_node, &end_node);
+    int start, end;
+    scanf("%d %d", &start, &end);
 
-    // Сброс массивов перед поиском
-    for (int i = 0; i < n; i++) visited[i] = 0;
+    int current_path[MAX_NODES];
+    findPaths(start - 1, end - 1, current_path, 0);
 
-    // Запуск поиска (уменьшаем индексы на 1 для работы с массивом 0..n-1)
-    findAllPaths(start_node - 1, end_node - 1);
-
-    if (!found_any) {
+    if (path_count == 0) {
         printf("0\n");
+    } else {
+        // Сортируем, чтобы короткие пути (1,2,4) были выше длинных (1,2,3,4)
+        qsort(all_paths, path_count, sizeof(Path), comparePaths);
+
+        for (int i = 0; i < path_count; i++) {
+            for (int j = 0; j < all_paths[i].length; j++) {
+                printf("%d%s", all_paths[i].nodes[j] + 1, (j == all_paths[i].length - 1) ? "" : ",");
+            }
+            printf("\n");
+        }
     }
 
     return 0;
