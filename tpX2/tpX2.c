@@ -1,115 +1,204 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+#include <ctype.h>
 
-#define MAX_NODES 100
-#define EMPTY -11111 // Флаг для NULL значений
+#define MAX_INPUT 4096
+#define MAX_NODES 1024
 
-// Структура узла дерева
 typedef struct Node {
-    int data;
-    struct Node *left, *right;
+    int val;
+    struct Node *left;
+    struct Node *right;
 } Node;
 
-// Создание нового узла
-Node* createNode(int data) {
-    if (data == EMPTY) return NULL;
-    Node* newNode = (Node*)malloc(sizeof(Node));
-    newNode->data = data;
-    newNode->left = newNode->right = NULL;
-    return newNode;
+/* ---------- Утилиты ---------- */
+
+static char *trim(char *s) {
+    while (isspace((unsigned char)*s)) s++;
+    if (*s == '\0') return s;
+
+    char *end = s + strlen(s) - 1;
+    while (end > s && isspace((unsigned char)*end)) end--;
+    end[1] = '\0';
+    return s;
 }
 
-// Функция для парсинга входной строки вида [1, 2, NULL, 3]
-int parseInput(char* input, int* values) {
-    int count = 0;
-    char* token = strtok(input, " [],");
-    while (token != NULL) {
-        if (strcmp(token, "NULL") == 0 || strcmp(token, "null") == 0) {
-            values[count++] = EMPTY;
+static int is_null_token(const char *s) {
+    return strcmp(s, "NULL") == 0 || strcmp(s, "null") == 0;
+}
+
+static Node *new_node(int v) {
+    Node *n = (Node *)malloc(sizeof(Node));
+    if (!n) {
+        fprintf(stderr, "Ошибка: не хватает памяти.\n");
+        exit(1);
+    }
+    n->val = v;
+    n->left = n->right = NULL;
+    return n;
+}
+
+static int tree_height(Node *root) {
+    if (!root) return 0;
+    int hl = tree_height(root->left);
+    int hr = tree_height(root->right);
+    return (hl > hr ? hl : hr) + 1;
+}
+
+static void free_tree(Node *root) {
+    if (!root) return;
+    free_tree(root->left);
+    free_tree(root->right);
+    free(root);
+}
+
+/* ---------- Рисование в "полотно" ---------- */
+
+static void put_str(char **canvas, int rows, int cols, int r, int c, const char *s) {
+    if (r < 0 || r >= rows) return;
+    int len = (int)strlen(s);
+    int start = c - len / 2;
+    for (int i = 0; i < len; i++) {
+        int cc = start + i;
+        if (cc >= 0 && cc < cols) canvas[r][cc] = s[i];
+    }
+}
+
+static void draw_tree(Node *node, char **canvas, int rows, int cols, int r, int left, int right) {
+    if (!node || left > right || r >= rows) return;
+
+    int mid = (left + right) / 2;
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d", node->val);
+    put_str(canvas, rows, cols, r, mid, buf);
+
+    int next_row = r + 2;
+    if (next_row >= rows) return;
+
+    if (node->left) {
+        int lmid = (left + mid - 1) / 2;
+        if (r + 1 < rows) {
+            int slash_col = (mid + lmid) / 2;
+            if (slash_col >= 0 && slash_col < cols) canvas[r + 1][slash_col] = '/';
+        }
+        draw_tree(node->left, canvas, rows, cols, next_row, left, mid - 1);
+    }
+
+    if (node->right) {
+        int rmid = (mid + 1 + right) / 2;
+        if (r + 1 < rows) {
+            int slash_col = (mid + rmid) / 2;
+            if (slash_col >= 0 && slash_col < cols) canvas[r + 1][slash_col] = '\\';
+        }
+        draw_tree(node->right, canvas, rows, cols, next_row, mid + 1, right);
+    }
+}
+
+static void print_canvas(char **canvas, int rows, int cols) {
+    for (int r = 0; r < rows; r++) {
+        int end = cols - 1;
+        while (end >= 0 && canvas[r][end] == ' ') end--;
+        if (end < 0) {
+            printf("\n");
         } else {
-            values[count++] = atoi(token);
+            canvas[r][end + 1] = '\0';
+            printf("%s\n", canvas[r]);
         }
-        token = strtok(NULL, " [],");
     }
-    return count;
 }
 
-// Построение дерева из массива (BFS order)
-Node* buildTree(int* values, int n) {
-    if (n == 0 || values[0] == EMPTY) return NULL;
+/* ---------- Парсинг и построение ---------- */
 
-    Node* root = createNode(values[0]);
-    Node* queue[MAX_NODES];
-    int head = 0, tail = 0;
-    queue[tail++] = root;
+int main(void) {
+    char input[MAX_INPUT];
 
-    int i = 1;
-    while (i < n) {
-        Node* parent = queue[head++];
-
-        // Левый ребенок
-        if (i < n && values[i] != EMPTY) {
-            parent->left = createNode(values[i]);
-            queue[tail++] = parent->left;
-        }
-        i++;
-
-        // Правый ребенок
-        if (i < n && values[i] != EMPTY) {
-            parent->right = createNode(values[i]);
-            queue[tail++] = parent->right;
-        }
-        i++;
+    printf("Введите список в формате [1, 2, 3, NULL, 5]:\n");
+    if (!fgets(input, sizeof(input), stdin)) {
+        fprintf(stderr, "Ошибка чтения ввода.\n");
+        return 1;
     }
-    return root;
-}
 
-// Визуализация дерева (рекурсивный вывод "боком")
-// Это наиболее надежный способ визуализации в консоли без сторонних библиотек
-void printTree(Node* root, int space) {
-    if (root == NULL) return;
+    char *s = trim(input);
+    size_t len = strlen(s);
+    if (len < 2 || s[0] != '[' || s[len - 1] != ']') {
+        fprintf(stderr, "Неверный формат. Ожидается: [ ... ]\n");
+        return 1;
+    }
 
-    space += 8; // Расстояние между уровнями
+    s[len - 1] = '\0';    // убираем ']'
+    s++;                  // пропускаем '['
 
-    // Сначала печатаем правую сторону
-    printTree(root->right, space);
-
-    printf("\n");
-    for (int i = 8; i < space; i++) printf(" ");
-    
-    // Вывод текущего узла
-    if (root->data != EMPTY)
-        printf("%d\n", root->data);
-
-    // Затем печатаем левую сторону
-    printTree(root->left, space);
-}
-
-// Красивый симметричный вывод (упрощенный вариант примера)
-void visualPrint(Node* root, int level) {
-    if (root == NULL) return;
-    if (level == 0) printf("Визуализация структуры (повернуто на 90°):\n");
-    printTree(root, 0);
-}
-
-int main() {
-    char input[256];
     int values[MAX_NODES];
+    int is_null[MAX_NODES];
+    int n = 0;
 
-    printf("Введите элементы дерева в формате BFS (например, [1, 2, 3, NULL, 5]):\n");
-    fgets(input, sizeof(input), stdin);
-
-    int n = parseInput(input, values);
-    Node* root = buildTree(values, n);
-
-    printf("\n--- Результат ---\n");
-    if (root == NULL) {
-        printf("Дерево пустое.\n");
-    } else {
-        printTree(root, 0);
+    char *token = strtok(s, ",");
+    while (token && n < MAX_NODES) {
+        char *t = trim(token);
+        if (*t == '\0' || is_null_token(t)) {
+            is_null[n] = 1;
+            values[n] = 0;
+        } else {
+            is_null[n] = 0;
+            values[n] = atoi(t);
+        }
+        n++;
+        token = strtok(NULL, ",");
     }
 
+    if (n == 0 || is_null[0]) {
+        printf("Пустое дерево.\n");
+        return 0;
+    }
+
+    Node *nodes[MAX_NODES] = {0};
+
+    for (int i = 0; i < n; i++) {
+        if (!is_null[i]) nodes[i] = new_node(values[i]);
+    }
+
+    for (int i = 0; i < n; i++) {
+        if (!nodes[i]) continue;
+        int li = 2 * i + 1;
+        int ri = 2 * i + 2;
+        if (li < n) nodes[i]->left = nodes[li];
+        if (ri < n) nodes[i]->right = nodes[ri];
+    }
+
+    Node *root = nodes[0];
+    int h = tree_height(root);
+
+    int rows = h * 2 - 1;
+    int cols = (1 << (h + 2));  // запас по ширине
+    if (cols < 32) cols = 32;
+
+    char **canvas = (char **)malloc(rows * sizeof(char *));
+    if (!canvas) {
+        fprintf(stderr, "Ошибка памяти.\n");
+        free_tree(root);
+        return 1;
+    }
+
+    for (int r = 0; r < rows; r++) {
+        canvas[r] = (char *)malloc(cols + 1);
+        if (!canvas[r]) {
+            fprintf(stderr, "Ошибка памяти.\n");
+            for (int k = 0; k < r; k++) free(canvas[k]);
+            free(canvas);
+            free_tree(root);
+            return 1;
+        }
+        memset(canvas[r], ' ', cols);
+        canvas[r][cols] = '\0';
+    }
+
+    draw_tree(root, canvas, rows, cols, 0, 0, cols - 1);
+    print_canvas(canvas, rows, cols);
+
+    for (int r = 0; r < rows; r++) free(canvas[r]);
+    free(canvas);
+    free_tree(root);
     return 0;
 }

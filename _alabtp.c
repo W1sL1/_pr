@@ -15,6 +15,167 @@
 // 1,2,3,4
 // 1,3,2,4
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAXN 100
+#define MAX_PATHS 100000
+
+typedef struct {
+    int nodes[MAXN];
+    int len;
+} Path;
+
+int graph[MAXN][MAXN];
+int n;
+
+Path paths[MAX_PATHS];
+int pathCount = 0;
+
+int curPath[MAXN];
+int visited[MAXN];
+
+/* Парсинг всех целых чисел из строки (игнорирует запятые, пробелы и др. символы) */
+int parseInts(const char *line, int out[], int maxOut) {
+    int cnt = 0;
+    const char *p = line;
+
+    while (*p && cnt < maxOut) {
+        while (*p && !isdigit((unsigned char)*p) && *p != '-') p++;
+        if (!*p) break;
+
+        char *endPtr;
+        long val = strtol(p, &endPtr, 10);
+        if (p == endPtr) break;
+
+        out[cnt++] = (int)val;
+        p = endPtr;
+    }
+
+    return cnt;
+}
+
+void savePath(int len) {
+    if (pathCount >= MAX_PATHS) return;
+    paths[pathCount].len = len;
+    for (int i = 0; i < len; i++) {
+        paths[pathCount].nodes[i] = curPath[i];
+    }
+    pathCount++;
+}
+
+void dfs(int u, int target, int depth) {
+    visited[u] = 1;
+    curPath[depth] = u;
+
+    if (u == target) {
+        savePath(depth + 1);
+    } else {
+        for (int v = 0; v < n; v++) {
+            if (graph[u][v] && !visited[v]) {
+                dfs(v, target, depth + 1);
+            }
+        }
+    }
+
+    visited[u] = 0;
+}
+
+int pathCompare(const void *a, const void *b) {
+    const Path *p1 = (const Path *)a;
+    const Path *p2 = (const Path *)b;
+
+    /* Сначала по длине пути */
+    if (p1->len != p2->len) return p1->len - p2->len;
+
+    /* Затем лексикографически */
+    int m = (p1->len < p2->len) ? p1->len : p2->len;
+    for (int i = 0; i < m; i++) {
+        if (p1->nodes[i] != p2->nodes[i]) return p1->nodes[i] - p2->nodes[i];
+    }
+    return 0;
+}
+
+int main(void) {
+    char line[2048];
+    int temp[MAXN];
+
+    /* 1) Читаем первую строку матрицы, определяем n */
+    if (!fgets(line, sizeof(line), stdin)) {
+        printf("0\n");
+        return 0;
+    }
+
+    n = parseInts(line, temp, MAXN);
+    if (n <= 0 || n > MAXN) {
+        printf("0\n");
+        return 0;
+    }
+
+    for (int j = 0; j < n; j++) graph[0][j] = temp[j];
+
+    /* 2) Читаем оставшиеся n-1 строк матрицы */
+    for (int i = 1; i < n; i++) {
+        if (!fgets(line, sizeof(line), stdin)) {
+            printf("0\n");
+            return 0;
+        }
+
+        int cnt = parseInts(line, temp, MAXN);
+        if (cnt < n) {
+            printf("0\n");
+            return 0;
+        }
+
+        for (int j = 0; j < n; j++) {
+            graph[i][j] = temp[j];
+        }
+    }
+
+    /* 3) Читаем строку с двумя вершинами (1..n) */
+    if (!fgets(line, sizeof(line), stdin)) {
+        printf("0\n");
+        return 0;
+    }
+
+    int uv[2];
+    int got = parseInts(line, uv, 2);
+    if (got < 2) {
+        printf("0\n");
+        return 0;
+    }
+
+    int start = uv[0] - 1;  /* перевод к 0-базовой индексации */
+    int target = uv[1] - 1;
+
+    if (start < 0 || start >= n || target < 0 || target >= n) {
+        printf("0\n");
+        return 0;
+    }
+
+    memset(visited, 0, sizeof(visited));
+    dfs(start, target, 0);
+
+    if (pathCount == 0) {
+        printf("0\n");
+        return 0;
+    }
+
+    qsort(paths, pathCount, sizeof(Path), pathCompare);
+
+    for (int i = 0; i < pathCount; i++) {
+        for (int j = 0; j < paths[i].len; j++) {
+            printf("%d", paths[i].nodes[j] + 1); /* обратно к 1..n */
+            if (j + 1 < paths[i].len) printf(",");
+        }
+        printf("\n");
+    }
+
+    return 0;
+}
+
 
 
 
@@ -472,17 +633,94 @@ int main() {
 // Иначе вывести:
 // 1. В первой строке минимальную стоимость.
 // 2. Во второй строке количество путей с минимальной стоимостью.
-// Ввод	Вывод
+// Примеры: 
+// Ввод1	
 // 5
-// 0 1 4 5 2	3
-// 1
-// Ввод	Вывод
-// 6
-// 0 2 -1 -1 -1 1	-1
-// Ввод	Вывод
-// 5
-// 0 1 1 1 1	2
+// 0 1 4 5 2	
+// Вывод1
 // 3
+// 1
+// Ввод2	
+// 6
+// 0 2 -1 -1 -1 1	
+// Вывод2
+// -1
+// Ввод3	
+// 5
+// 0 1 1 1 1	
+// Вывод3
+// 2
+// 3
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1 || n <= 0) {
+        return 0;
+    }
+
+    long long *a = (long long *)malloc((n + 1) * sizeof(long long));
+    long long *minCost = (long long *)malloc((n + 1) * sizeof(long long));
+    long long *ways = (long long *)malloc((n + 1) * sizeof(long long));
+
+    if (!a || !minCost || !ways) {
+        free(a);
+        free(minCost);
+        free(ways);
+        return 0;
+    }
+
+    for (int i = 1; i <= n; i++) {
+        scanf("%lld", &a[i]);
+    }
+
+    const long long INF = LLONG_MAX / 4;
+
+    for (int i = 1; i <= n; i++) {
+        minCost[i] = INF;
+        ways[i] = 0;
+    }
+
+    // Старт: уже в клетке 1
+    minCost[1] = 0;
+    ways[1] = 1;
+
+    for (int i = 2; i <= n; i++) {
+        if (a[i] == -1) {
+            continue; // запрещенная клетка
+        }
+
+        for (int d = 1; d <= 3; d++) {
+            int p = i - d;
+            if (p < 1) continue;
+            if (minCost[p] == INF) continue; // до p нельзя добраться
+
+            long long candidate = minCost[p] + a[i];
+
+            if (candidate < minCost[i]) {
+                minCost[i] = candidate;
+                ways[i] = ways[p];
+            } else if (candidate == minCost[i]) {
+                ways[i] += ways[p];
+            }
+        }
+    }
+
+    if (minCost[n] == INF) {
+        printf("-1\n");
+    } else {
+        printf("%lld\n", minCost[n]);
+        printf("%lld\n", ways[n]);
+    }
+
+    free(a);
+    free(minCost);
+    free(ways);
+    return 0;
+}
 
 
 
@@ -720,7 +958,6 @@ int main() {
 
 // Лабораторная работа "Визуализация деревьев" . язык си . человек сам вводит входные данные .
 // Написать программу, на вход которой подается представление бинарного дерева в виде списка значений узлов в порядке обхода в ширину, начиная с корня. На основе списка значений узлов программа должна построить бинарное дерево и вывести его в консоль.
-// Данная работа является творческой, вы можете предложить свой вариант визуализации, схожий с представленным в примерах.
 // Пример ввода №1:
 // [1, 2, 3, 4, 5, 6, 7]
 // Пример вывода №1:
@@ -737,3 +974,208 @@ int main() {
 //     3
 //    / \
 //   6   7
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_INPUT 4096
+#define MAX_NODES 1024
+
+typedef struct Node {
+    int val;
+    struct Node *left;
+    struct Node *right;
+} Node;
+
+/* ---------- Утилиты ---------- */
+
+static char *trim(char *s) {
+    while (isspace((unsigned char)*s)) s++;
+    if (*s == '\0') return s;
+
+    char *end = s + strlen(s) - 1;
+    while (end > s && isspace((unsigned char)*end)) end--;
+    end[1] = '\0';
+    return s;
+}
+
+static int is_null_token(const char *s) {
+    return strcmp(s, "NULL") == 0 || strcmp(s, "null") == 0;
+}
+
+static Node *new_node(int v) {
+    Node *n = (Node *)malloc(sizeof(Node));
+    if (!n) {
+        fprintf(stderr, "Ошибка: не хватает памяти.\n");
+        exit(1);
+    }
+    n->val = v;
+    n->left = n->right = NULL;
+    return n;
+}
+
+static int tree_height(Node *root) {
+    if (!root) return 0;
+    int hl = tree_height(root->left);
+    int hr = tree_height(root->right);
+    return (hl > hr ? hl : hr) + 1;
+}
+
+static void free_tree(Node *root) {
+    if (!root) return;
+    free_tree(root->left);
+    free_tree(root->right);
+    free(root);
+}
+
+/* ---------- Рисование в "полотно" ---------- */
+
+static void put_str(char **canvas, int rows, int cols, int r, int c, const char *s) {
+    if (r < 0 || r >= rows) return;
+    int len = (int)strlen(s);
+    int start = c - len / 2;
+    for (int i = 0; i < len; i++) {
+        int cc = start + i;
+        if (cc >= 0 && cc < cols) canvas[r][cc] = s[i];
+    }
+}
+
+static void draw_tree(Node *node, char **canvas, int rows, int cols, int r, int left, int right) {
+    if (!node || left > right || r >= rows) return;
+
+    int mid = (left + right) / 2;
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d", node->val);
+    put_str(canvas, rows, cols, r, mid, buf);
+
+    int next_row = r + 2;
+    if (next_row >= rows) return;
+
+    if (node->left) {
+        int lmid = (left + mid - 1) / 2;
+        if (r + 1 < rows) {
+            int slash_col = (mid + lmid) / 2;
+            if (slash_col >= 0 && slash_col < cols) canvas[r + 1][slash_col] = '/';
+        }
+        draw_tree(node->left, canvas, rows, cols, next_row, left, mid - 1);
+    }
+
+    if (node->right) {
+        int rmid = (mid + 1 + right) / 2;
+        if (r + 1 < rows) {
+            int slash_col = (mid + rmid) / 2;
+            if (slash_col >= 0 && slash_col < cols) canvas[r + 1][slash_col] = '\\';
+        }
+        draw_tree(node->right, canvas, rows, cols, next_row, mid + 1, right);
+    }
+}
+
+static void print_canvas(char **canvas, int rows, int cols) {
+    for (int r = 0; r < rows; r++) {
+        int end = cols - 1;
+        while (end >= 0 && canvas[r][end] == ' ') end--;
+        if (end < 0) {
+            printf("\n");
+        } else {
+            canvas[r][end + 1] = '\0';
+            printf("%s\n", canvas[r]);
+        }
+    }
+}
+
+/* ---------- Парсинг и построение ---------- */
+
+int main(void) {
+    char input[MAX_INPUT];
+
+    printf("Введите список в формате [1, 2, 3, NULL, 5]:\n");
+    if (!fgets(input, sizeof(input), stdin)) {
+        fprintf(stderr, "Ошибка чтения ввода.\n");
+        return 1;
+    }
+
+    char *s = trim(input);
+    size_t len = strlen(s);
+    if (len < 2 || s[0] != '[' || s[len - 1] != ']') {
+        fprintf(stderr, "Неверный формат. Ожидается: [ ... ]\n");
+        return 1;
+    }
+
+    s[len - 1] = '\0';    // убираем ']'
+    s++;                  // пропускаем '['
+
+    int values[MAX_NODES];
+    int is_null[MAX_NODES];
+    int n = 0;
+
+    char *token = strtok(s, ",");
+    while (token && n < MAX_NODES) {
+        char *t = trim(token);
+        if (*t == '\0' || is_null_token(t)) {
+            is_null[n] = 1;
+            values[n] = 0;
+        } else {
+            is_null[n] = 0;
+            values[n] = atoi(t);
+        }
+        n++;
+        token = strtok(NULL, ",");
+    }
+
+    if (n == 0 || is_null[0]) {
+        printf("Пустое дерево.\n");
+        return 0;
+    }
+
+    Node *nodes[MAX_NODES] = {0};
+
+    for (int i = 0; i < n; i++) {
+        if (!is_null[i]) nodes[i] = new_node(values[i]);
+    }
+
+    for (int i = 0; i < n; i++) {
+        if (!nodes[i]) continue;
+        int li = 2 * i + 1;
+        int ri = 2 * i + 2;
+        if (li < n) nodes[i]->left = nodes[li];
+        if (ri < n) nodes[i]->right = nodes[ri];
+    }
+
+    Node *root = nodes[0];
+    int h = tree_height(root);
+
+    int rows = h * 2 - 1;
+    int cols = (1 << (h + 2));  // запас по ширине
+    if (cols < 32) cols = 32;
+
+    char **canvas = (char **)malloc(rows * sizeof(char *));
+    if (!canvas) {
+        fprintf(stderr, "Ошибка памяти.\n");
+        free_tree(root);
+        return 1;
+    }
+
+    for (int r = 0; r < rows; r++) {
+        canvas[r] = (char *)malloc(cols + 1);
+        if (!canvas[r]) {
+            fprintf(stderr, "Ошибка памяти.\n");
+            for (int k = 0; k < r; k++) free(canvas[k]);
+            free(canvas);
+            free_tree(root);
+            return 1;
+        }
+        memset(canvas[r], ' ', cols);
+        canvas[r][cols] = '\0';
+    }
+
+    draw_tree(root, canvas, rows, cols, 0, 0, cols - 1);
+    print_canvas(canvas, rows, cols);
+
+    for (int r = 0; r < rows; r++) free(canvas[r]);
+    free(canvas);
+    free_tree(root);
+    return 0;
+}

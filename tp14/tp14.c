@@ -1,88 +1,159 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
-#define MAX_NODES 10
-#define MAX_PATHS 100
+#define MAXN 100
+#define MAX_PATHS 100000
 
-int adj[MAX_NODES][MAX_NODES];
-int visited[MAX_NODES];
-int n = 4; // Размер матрицы
-
-// Структура для хранения найденных путей
 typedef struct {
-    int nodes[MAX_NODES];
-    int length;
+    int nodes[MAXN];
+    int len;
 } Path;
 
-Path all_paths[MAX_PATHS];
-int path_count = 0;
+int graph[MAXN][MAXN];
+int n;
 
-// DFS для поиска всех путей
-void findPaths(int u, int target, int current_path[], int depth) {
+Path paths[MAX_PATHS];
+int pathCount = 0;
+
+int curPath[MAXN];
+int visited[MAXN];
+
+/* Парсинг всех целых чисел из строки (игнорирует запятые, пробелы и др. символы) */
+int parseInts(const char *line, int out[], int maxOut) {
+    int cnt = 0;
+    const char *p = line;
+
+    while (*p && cnt < maxOut) {
+        while (*p && !isdigit((unsigned char)*p) && *p != '-') p++;
+        if (!*p) break;
+
+        char *endPtr;
+        long val = strtol(p, &endPtr, 10);
+        if (p == endPtr) break;
+
+        out[cnt++] = (int)val;
+        p = endPtr;
+    }
+
+    return cnt;
+}
+
+void savePath(int len) {
+    if (pathCount >= MAX_PATHS) return;
+    paths[pathCount].len = len;
+    for (int i = 0; i < len; i++) {
+        paths[pathCount].nodes[i] = curPath[i];
+    }
+    pathCount++;
+}
+
+void dfs(int u, int target, int depth) {
     visited[u] = 1;
-    current_path[depth] = u;
+    curPath[depth] = u;
 
     if (u == target) {
-        // Сохраняем найденный путь в массив
-        all_paths[path_count].length = depth + 1;
-        for (int i = 0; i <= depth; i++) {
-            all_paths[path_count].nodes[i] = current_path[i];
-        }
-        path_count++;
+        savePath(depth + 1);
     } else {
         for (int v = 0; v < n; v++) {
-            if (adj[u][v] == 1 && !visited[v]) {
-                findPaths(v, target, current_path, depth + 1);
+            if (graph[u][v] && !visited[v]) {
+                dfs(v, target, depth + 1);
             }
         }
     }
-    visited[u] = 0; // Backtracking
+
+    visited[u] = 0;
 }
 
-// Функция для сортировки путей (сначала по длине, потом по составу)
-int comparePaths(const void *a, const void *b) {
-    Path *pathA = (Path *)a;
-    Path *pathB = (Path *)b;
-    
-    if (pathA->length != pathB->length) {
-        return pathA->length - pathB->length;
-    }
-    for (int i = 0; i < pathA->length; i++) {
-        if (pathA->nodes[i] != pathB->nodes[i]) {
-            return pathA->nodes[i] - pathB->nodes[i];
-        }
+int pathCompare(const void *a, const void *b) {
+    const Path *p1 = (const Path *)a;
+    const Path *p2 = (const Path *)b;
+
+    /* Сначала по длине пути */
+    if (p1->len != p2->len) return p1->len - p2->len;
+
+    /* Затем лексикографически */
+    int m = (p1->len < p2->len) ? p1->len : p2->len;
+    for (int i = 0; i < m; i++) {
+        if (p1->nodes[i] != p2->nodes[i]) return p1->nodes[i] - p2->nodes[i];
     }
     return 0;
 }
 
-int main() {
-    // Ввод матрицы 4x4
-    for (int i = 0; i < n; i++) {
+int main(void) {
+    char line[2048];
+    int temp[MAXN];
+
+    /* 1) Читаем первую строку матрицы, определяем n */
+    if (!fgets(line, sizeof(line), stdin)) {
+        printf("0\n");
+        return 0;
+    }
+
+    n = parseInts(line, temp, MAXN);
+    if (n <= 0 || n > MAXN) {
+        printf("0\n");
+        return 0;
+    }
+
+    for (int j = 0; j < n; j++) graph[0][j] = temp[j];
+
+    /* 2) Читаем оставшиеся n-1 строк матрицы */
+    for (int i = 1; i < n; i++) {
+        if (!fgets(line, sizeof(line), stdin)) {
+            printf("0\n");
+            return 0;
+        }
+
+        int cnt = parseInts(line, temp, MAXN);
+        if (cnt < n) {
+            printf("0\n");
+            return 0;
+        }
+
         for (int j = 0; j < n; j++) {
-            scanf("%d", &adj[i][j]);
-            if (getchar() == ',') ; // Пропуск запятой
+            graph[i][j] = temp[j];
         }
     }
 
-    int start, end;
-    scanf("%d %d", &start, &end);
-
-    int current_path[MAX_NODES];
-    findPaths(start - 1, end - 1, current_path, 0);
-
-    if (path_count == 0) {
+    /* 3) Читаем строку с двумя вершинами (1..n) */
+    if (!fgets(line, sizeof(line), stdin)) {
         printf("0\n");
-    } else {
-        // Сортируем, чтобы короткие пути (1,2,4) были выше длинных (1,2,3,4)
-        qsort(all_paths, path_count, sizeof(Path), comparePaths);
+        return 0;
+    }
 
-        for (int i = 0; i < path_count; i++) {
-            for (int j = 0; j < all_paths[i].length; j++) {
-                printf("%d%s", all_paths[i].nodes[j] + 1, (j == all_paths[i].length - 1) ? "" : ",");
-            }
-            printf("\n");
+    int uv[2];
+    int got = parseInts(line, uv, 2);
+    if (got < 2) {
+        printf("0\n");
+        return 0;
+    }
+
+    int start = uv[0] - 1;  /* перевод к 0-базовой индексации */
+    int target = uv[1] - 1;
+
+    if (start < 0 || start >= n || target < 0 || target >= n) {
+        printf("0\n");
+        return 0;
+    }
+
+    memset(visited, 0, sizeof(visited));
+    dfs(start, target, 0);
+
+    if (pathCount == 0) {
+        printf("0\n");
+        return 0;
+    }
+
+    qsort(paths, pathCount, sizeof(Path), pathCompare);
+
+    for (int i = 0; i < pathCount; i++) {
+        for (int j = 0; j < paths[i].len; j++) {
+            printf("%d", paths[i].nodes[j] + 1); /* обратно к 1..n */
+            if (j + 1 < paths[i].len) printf(",");
         }
+        printf("\n");
     }
 
     return 0;
