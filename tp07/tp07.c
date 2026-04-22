@@ -1,75 +1,69 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
+
+#define INF LLONG_MAX
 
 int main() {
     int n;
-    
-    // Считываем количество клеток
-    if (scanf("%d", &n) != 1) {
-        return 1;
-    }
+    if (scanf("%d", &n) != 1) return 0;
 
-    // Выделяем память под массивы (индексация с 1 до n)
-    long long *a = (long long *)malloc((n + 1) * sizeof(long long));
-    long long *min_cost = (long long *)malloc((n + 1) * sizeof(long long));
-    long long *ways = (long long *)malloc((n + 1) * sizeof(long long));
+    long long *a = (long long *)malloc(n * sizeof(long long));
+    long long *min_cost = (long long *)malloc(n * sizeof(long long));
+    long long *ways = (long long *)malloc(n * sizeof(long long));
 
-    // Считываем стоимости
-    for (int i = 1; i <= n; i++) {
+    for (int i = 0; i < n; i++) {
         scanf("%lld", &a[i]);
-        min_cost[i] = -1; // -1 будет означать, что клетка пока недостижима
+        min_cost[i] = INF; // Изначально все клетки недостижимы
         ways[i] = 0;
     }
 
-    // Базовый случай: старт из клетки 1
-    if (a[1] != -1) {
-        min_cost[1] = a[1];
-        ways[1] = 1;
+    // Начальная точка
+    if (a[0] != -1) {
+        min_cost[0] = a[0];
+        ways[0] = 1;
+    } else {
+        // Если первая клетка запрещена, пути нет
+        printf("-1\n");
+        return 0;
     }
 
-    // Заполняем массивы для оставшихся клеток
-    for (int i = 2; i <= n; i++) {
-        // Если клетка запрещена, пропускаем её
-        if (a[i] == -1) {
-            continue;
-        }
+    for (int i = 1; i < n; i++) {
+        if (a[i] == -1) continue; // Пропускаем запрещенные клетки
 
-        long long best_cost = -1;
-        long long best_ways = 0;
+        long long best_prev_cost = INF;
 
-        // Проверяем 3 предыдущие возможные позиции (прыжки на 1, 2 или 3)
-        for (int step = 1; step <= 3; step++) {
-            int prev = i - step;
-            
-            // Если предыдущая клетка существует и достижима
-            if (prev >= 1 && min_cost[prev] != -1) {
-                long long current_cost = min_cost[prev] + a[i];
-
-                // Если нашли более дешёвый путь или это первый найденный путь
-                if (best_cost == -1 || current_cost < best_cost) {
-                    best_cost = current_cost;
-                    best_ways = ways[prev];
-                } 
-                // Если нашли путь с такой же минимальной стоимостью
-                else if (current_cost == best_cost) {
-                    best_ways += ways[prev];
+        // Смотрим на 1, 2 и 3 клетки назад
+        for (int j = 1; j <= 3; j++) {
+            int prev = i - j;
+            if (prev >= 0 && min_cost[prev] != INF) {
+                if (min_cost[prev] < best_prev_cost) {
+                    best_prev_cost = min_cost[prev];
                 }
             }
         }
 
-        min_cost[i] = best_cost;
-        ways[i] = best_ways;
+        // Если нашли хотя бы один путь до текущей клетки
+        if (best_prev_cost != INF) {
+            min_cost[i] = best_prev_cost + a[i];
+            
+            // Считаем количество путей, которые дают эту минимальную стоимость
+            for (int j = 1; j <= 3; j++) {
+                int prev = i - j;
+                if (prev >= 0 && min_cost[prev] == best_prev_cost) {
+                    ways[i] += ways[prev];
+                }
+            }
+        }
     }
 
-    // Вывод результатов
-    if (min_cost[n] == -1 || ways[n] == 0) {
+    // Вывод результата
+    if (min_cost[n - 1] == INF) {
         printf("-1\n");
     } else {
-        printf("%lld\n", min_cost[n]);
-        printf("%lld\n", ways[n]);
+        printf("%lld\n%lld\n", min_cost[n - 1], ways[n - 1]);
     }
 
-    // Освобождаем память
     free(a);
     free(min_cost);
     free(ways);
