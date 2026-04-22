@@ -229,9 +229,8 @@ int main(void) {
 
 
 
-//Язык "Си"
-//Тема "4. Рекурсия"
-//Лабораторная работа "4.1. Расстановка шахматных фигур"
+
+//Тема "4. Рекурсия". Лабораторная работа "4.1. Расстановка шахматных фигур" . язык си . человек сам вводит входные данные .
 //Пожелания: исправить 4.1.c(5) : fatal error C1083 : 
 //Cannot open include file : 'stdbool.h' : No such file or directory.
 //Дана квадратная шахматная доска размером N x N.На доске уже размещено K фигур.Фигуры размещены так, 
@@ -553,12 +552,173 @@ int main() {
 // [7]
 // [9]
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_NODES 1000
+#define INF -1234567 // Метка для NULL
+
+typedef struct Node {
+    int data;
+    struct Node *left;
+    struct Node *right;
+} Node;
+
+// --- Базовые функции дерева ---
+
+Node* createNode(int value) {
+    if (value == INF) return NULL;
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    newNode->data = value;
+    newNode->left = newNode->right = NULL;
+    return newNode;
+}
+
+// Построение дерева из массива (BFS-структура)
+Node* buildTree(int arr[], int n, int i) {
+    if (i >= n || arr[i] == INF) return NULL;
+    Node* root = createNode(arr[i]);
+    root->left = buildTree(arr, n, 2 * i + 1);
+    root->right = buildTree(arr, n, 2 * i + 2);
+    return root;
+}
+
+int getHeight(Node* root) {
+    if (!root) return -1;
+    int l = getHeight(root->left);
+    int r = getHeight(root->right);
+    return (l > r ? l : r) + 1;
+}
+
+int getSize(Node* root) {
+    if (!root) return 0;
+    return 1 + getSize(root->left) + getSize(root->right);
+}
+
+int countLeaves(Node* root) {
+    if (!root) return 0;
+    if (!root->left && !root->right) return 1;
+    return countLeaves(root->left) + countLeaves(root->right);
+}
+
+void postOrder(Node* root, int* first) {
+    if (!root) return;
+    postOrder(root->left, first);
+    postOrder(root->right, first);
+    if (!(*first)) printf(", ");
+    printf("%d", root->data);
+    *first = 0;
+}
+
+int getSum(Node* root) {
+    if (!root) return 0;
+    return root->data + getSum(root->left) + getSum(root->right);
+}
+
+// --- Вывод поддерева в формате BFS списка ---
+
+void printSubtreeBFS(Node* root) {
+    if (!root) return;
+    Node* queue[MAX_NODES];
+    int values[MAX_NODES];
+    int is_null[MAX_NODES];
+    int head = 0, tail = 0;
+    
+    queue[tail++] = root;
+    int count = 0;
+    int last_valid = 0;
+
+    while (head < tail && count < MAX_NODES) {
+        Node* curr = queue[head++];
+        if (curr) {
+            values[count] = curr->data;
+            is_null[count] = 0;
+            last_valid = count;
+            queue[tail++] = curr->left;
+            queue[tail++] = curr->right;
+        } else {
+            is_null[count] = 1;
+        }
+        count++;
+    }
+
+    printf("[");
+    for (int i = 0; i <= last_valid; i++) {
+        if (is_null[i]) printf("NULL");
+        else printf("%d", values[i]);
+        if (i < last_valid) printf(", ");
+    }
+    printf("]\n");
+}
+
+// Поиск и анализ поддеревьев (In-order traversal для порядка как в примере)
+void findSubtrees(Node* root, int N, int* count, int mode) {
+    if (!root) return;
+
+    // Сначала идем вглубь влево
+    findSubtrees(root->left, N, count, mode);
+
+    // Проверяем текущий узел (корень поддерева)
+    if (getSum(root) < N) {
+        if (mode == 0) (*count)++;
+        else printSubtreeBFS(root);
+    }
+
+    // Затем идем вправо
+    findSubtrees(root->right, N, count, mode);
+}
+
+// --- Парсинг ввода ---
+
+int main() {
+    char buf[1000];
+    int arr[MAX_NODES];
+    int n = 0, N_val;
+
+    // Считывание массива
+    if (fgets(buf, sizeof(buf), stdin)) {
+        char* token = strtok(buf, " [],\n");
+        while (token) {
+            if (strcmp(token, "NULL") == 0) arr[n++] = INF;
+            else arr[n++] = atoi(token);
+            token = strtok(NULL, " [],\n");
+        }
+    }
+
+    // Считывание N (игнорируя букву N если она есть)
+    char n_pref[2];
+    if (scanf("%s %d", n_pref, &N_val) != 2) {
+        // Если ввели просто число
+        N_val = atoi(n_pref);
+    }
+
+    Node* root = buildTree(arr, n, 0);
+
+    // Вывод согласно формату
+    printf("Tree height: %d\n", getHeight(root));
+    printf("Tree size: %d\n", getSize(root));
+    printf("Leaf count: %d\n", countLeaves(root));
+    
+    printf("Post-order traversal: [");
+    int first = 1;
+    postOrder(root, &first);
+    printf("]\n");
+
+    int subtreeCount = 0;
+    findSubtrees(root, N_val, &subtreeCount, 0); // Первый проход: считаем
+    printf("The subtrees: %d\n", subtreeCount);
+    findSubtrees(root, N_val, NULL, 1);          // Второй проход: печатаем
+
+    return 0;
+}
 
 
 
 
 
-// Лабораторная работа "Визуализация деревьев"
+
+// Лабораторная работа "Визуализация деревьев" . язык си . человек сам вводит входные данные .
 // Написать программу, на вход которой подается представление бинарного дерева в виде списка значений узлов в порядке обхода в ширину, начиная с корня. На основе списка значений узлов программа должна построить бинарное дерево и вывести его в консоль.
 // Данная работа является творческой, вы можете предложить свой вариант визуализации, схожий с представленным в примерах.
 // Пример ввода №1:
@@ -577,3 +737,119 @@ int main() {
 //     3
 //    / \
 //   6   7
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#define MAX_NODES 100
+#define EMPTY -11111 // Флаг для NULL значений
+
+// Структура узла дерева
+typedef struct Node {
+    int data;
+    struct Node *left, *right;
+} Node;
+
+// Создание нового узла
+Node* createNode(int data) {
+    if (data == EMPTY) return NULL;
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    newNode->data = data;
+    newNode->left = newNode->right = NULL;
+    return newNode;
+}
+
+// Функция для парсинга входной строки вида [1, 2, NULL, 3]
+int parseInput(char* input, int* values) {
+    int count = 0;
+    char* token = strtok(input, " [],");
+    while (token != NULL) {
+        if (strcmp(token, "NULL") == 0 || strcmp(token, "null") == 0) {
+            values[count++] = EMPTY;
+        } else {
+            values[count++] = atoi(token);
+        }
+        token = strtok(NULL, " [],");
+    }
+    return count;
+}
+
+// Построение дерева из массива (BFS order)
+Node* buildTree(int* values, int n) {
+    if (n == 0 || values[0] == EMPTY) return NULL;
+
+    Node* root = createNode(values[0]);
+    Node* queue[MAX_NODES];
+    int head = 0, tail = 0;
+    queue[tail++] = root;
+
+    int i = 1;
+    while (i < n) {
+        Node* parent = queue[head++];
+
+        // Левый ребенок
+        if (i < n && values[i] != EMPTY) {
+            parent->left = createNode(values[i]);
+            queue[tail++] = parent->left;
+        }
+        i++;
+
+        // Правый ребенок
+        if (i < n && values[i] != EMPTY) {
+            parent->right = createNode(values[i]);
+            queue[tail++] = parent->right;
+        }
+        i++;
+    }
+    return root;
+}
+
+// Визуализация дерева (рекурсивный вывод "боком")
+// Это наиболее надежный способ визуализации в консоли без сторонних библиотек
+void printTree(Node* root, int space) {
+    if (root == NULL) return;
+
+    space += 8; // Расстояние между уровнями
+
+    // Сначала печатаем правую сторону
+    printTree(root->right, space);
+
+    printf("\n");
+    for (int i = 8; i < space; i++) printf(" ");
+    
+    // Вывод текущего узла
+    if (root->data != EMPTY)
+        printf("%d\n", root->data);
+
+    // Затем печатаем левую сторону
+    printTree(root->left, space);
+}
+
+// Красивый симметричный вывод (упрощенный вариант примера)
+void visualPrint(Node* root, int level) {
+    if (root == NULL) return;
+    if (level == 0) printf("Визуализация структуры (повернуто на 90°):\n");
+    printTree(root, 0);
+}
+
+int main() {
+    char input[256];
+    int values[MAX_NODES];
+
+    printf("Введите элементы дерева в формате BFS (например, [1, 2, 3, NULL, 5]):\n");
+    fgets(input, sizeof(input), stdin);
+
+    int n = parseInput(input, values);
+    Node* root = buildTree(values, n);
+
+    printf("\n--- Результат ---\n");
+    if (root == NULL) {
+        printf("Дерево пустое.\n");
+    } else {
+        printTree(root, 0);
+    }
+
+    return 0;
+}
