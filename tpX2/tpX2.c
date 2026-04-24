@@ -3,6 +3,13 @@
 #include <string.h>
 #include <ctype.h>
 
+/* Решение проблемы для старых компиляторов MSVC */
+#ifdef _MSC_VER
+#if _MSC_VER < 1900
+#define snprintf _snprintf
+#endif
+#endif
+
 #define MAX_INPUT 4096
 #define MAX_NODES 1024
 
@@ -97,7 +104,8 @@ static void draw_tree(Node *node, char **canvas, int rows, int cols, int r, int 
 }
 
 static void print_canvas(char **canvas, int rows, int cols) {
-    for (int r = 0; r < rows; r++) {
+    int r;
+    for (r = 0; r < rows; r++) {
         int end = cols - 1;
         while (end >= 0 && canvas[r][end] == ' ') end--;
         if (end < 0) {
@@ -113,6 +121,19 @@ static void print_canvas(char **canvas, int rows, int cols) {
 
 int main(void) {
     char input[MAX_INPUT];
+    char *s;
+    size_t len;
+    int values[MAX_NODES];
+    int is_null[MAX_NODES];
+    int n = 0;
+    char *token;
+    Node *nodes[MAX_NODES] = {0};
+    int i;
+    Node *root;
+    int h;
+    int rows, cols;
+    char **canvas;
+    int r;
 
     printf("Введите список в формате [1, 2, 3, NULL, 5]:\n");
     if (!fgets(input, sizeof(input), stdin)) {
@@ -120,8 +141,8 @@ int main(void) {
         return 1;
     }
 
-    char *s = trim(input);
-    size_t len = strlen(s);
+    s = trim(input);
+    len = strlen(s);
     if (len < 2 || s[0] != '[' || s[len - 1] != ']') {
         fprintf(stderr, "Неверный формат. Ожидается: [ ... ]\n");
         return 1;
@@ -130,11 +151,7 @@ int main(void) {
     s[len - 1] = '\0';    // убираем ']'
     s++;                  // пропускаем '['
 
-    int values[MAX_NODES];
-    int is_null[MAX_NODES];
-    int n = 0;
-
-    char *token = strtok(s, ",");
+    token = strtok(s, ",");
     while (token && n < MAX_NODES) {
         char *t = trim(token);
         if (*t == '\0' || is_null_token(t)) {
@@ -153,13 +170,11 @@ int main(void) {
         return 0;
     }
 
-    Node *nodes[MAX_NODES] = {0};
-
-    for (int i = 0; i < n; i++) {
+    for (i = 0; i < n; i++) {
         if (!is_null[i]) nodes[i] = new_node(values[i]);
     }
 
-    for (int i = 0; i < n; i++) {
+    for (i = 0; i < n; i++) {
         if (!nodes[i]) continue;
         int li = 2 * i + 1;
         int ri = 2 * i + 2;
@@ -167,25 +182,26 @@ int main(void) {
         if (ri < n) nodes[i]->right = nodes[ri];
     }
 
-    Node *root = nodes[0];
-    int h = tree_height(root);
+    root = nodes[0];
+    h = tree_height(root);
 
-    int rows = h * 2 - 1;
-    int cols = (1 << (h + 2));  // запас по ширине
+    rows = h * 2 - 1;
+    cols = (1 << (h + 2));  // запас по ширине
     if (cols < 32) cols = 32;
 
-    char **canvas = (char **)malloc(rows * sizeof(char *));
+    canvas = (char **)malloc(rows * sizeof(char *));
     if (!canvas) {
         fprintf(stderr, "Ошибка памяти.\n");
         free_tree(root);
         return 1;
     }
 
-    for (int r = 0; r < rows; r++) {
+    for (r = 0; r < rows; r++) {
         canvas[r] = (char *)malloc(cols + 1);
         if (!canvas[r]) {
+            int k;
             fprintf(stderr, "Ошибка памяти.\n");
-            for (int k = 0; k < r; k++) free(canvas[k]);
+            for (k = 0; k < r; k++) free(canvas[k]);
             free(canvas);
             free_tree(root);
             return 1;
@@ -197,7 +213,7 @@ int main(void) {
     draw_tree(root, canvas, rows, cols, 0, 0, cols - 1);
     print_canvas(canvas, rows, cols);
 
-    for (int r = 0; r < rows; r++) free(canvas[r]);
+    for (r = 0; r < rows; r++) free(canvas[r]);
     free(canvas);
     free_tree(root);
     return 0;
