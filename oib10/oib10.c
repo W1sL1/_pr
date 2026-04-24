@@ -9,14 +9,8 @@
 #define EXIT 3
 
 int FindOutSize(int Block) {
-    int Size = 0;
-    if (Block == 8) Size = 12;
-    if (Block == 12) Size = 17;
-    if (Block == 16)Size = 21;
-    if (Block == 24) Size = 29;
-    if (Block == 32) Size = 38;
-    if (Block == 48) Size = 54;
-    if (Block == 64) Size = 71;
+    int Size = 0; if (Block == 8) Size = 12; if (Block == 12) Size = 17; if (Block == 16)Size = 21;
+    if (Block == 24) Size = 29; if (Block == 32) Size = 38; if (Block == 48) Size = 54; if (Block == 64) Size = 71;
     return Size;
 }
 
@@ -95,8 +89,8 @@ int AddControlBits(int Block) {
     int Sum = 0, ControlBit = 0, Count = 0, NumberBits[71];
     int Size = FindOutSize(Block);
     memset(NumberBits, 0, sizeof(NumberBits));
-    FILE* BinaryFile = fopen("Binary.txt", "rb");
-    FILE* ControlFile = fopen("Control.txt", "wb");
+    FILE* BinaryFile = fopen("bin.txt", "rb");
+    FILE* ControlFile = fopen("cntrl.txt", "wb");
     if (CheckFiles(BinaryFile)) return EXIT_FAILURE;
     if (CheckFiles(ControlFile)) return EXIT_FAILURE;
     while (!feof(BinaryFile)) {
@@ -175,8 +169,8 @@ int DeleteConrolBits(int Block) {
     char Symbol = 0;
     int NumberBits[71] = { 0 };
     int Size = FindOutSize(Block);
-    FILE* UseFile = fopen("Binary.txt", "wb");
-    FILE* File = fopen("Control.txt", "rb");
+    FILE* UseFile = fopen("bin.txt", "wb");
+    FILE* File = fopen("cntrl.txt", "rb");
     if (CheckFiles(UseFile)) return EXIT_FAILURE;
     if (CheckFiles(File)) return EXIT_FAILURE;
     while (!feof(File)) {
@@ -211,11 +205,9 @@ int Coder(void) {
     }
     printf("введите имя исходного файла:");
     if (scanf("%s", &NameFile) == 0)return EXIT_FAILURE;
-    if (TextToBit(NameFile, "Binary.txt")) return EXIT_FAILURE;
+    if (TextToBit(NameFile, "bin.txt")) return EXIT_FAILURE;
     if (AddControlBits(Block))return EXIT_FAILURE;
-    WriteToFile("Coder.txt", "Control.txt");
-    // remove("Binary.txt");
-    // remove("Control.txt");
+    WriteToFile("coder.txt", "cntrl.txt");
     return EXIT_SUCCESS;
 }
 
@@ -231,11 +223,11 @@ int Decoder(void) {
     }
     printf("введите имя файла, который хотите декодировать:");
     if (scanf("%s", &NameFile) == 0)return EXIT_FAILURE;
-    if (TextToBit(NameFile, "Control.txt")) return EXIT_FAILURE;
+    if (TextToBit(NameFile, "cntrl.txt")) return EXIT_FAILURE;
     if (DeleteConrolBits(Block)) return EXIT_FAILURE;
-    WriteToFile("Output.txt", "Binary.txt");
-    remove("Binary.txt");
-    remove("Control.txt");
+    WriteToFile("output.txt", "bin.txt");
+    remove("bin.txt");
+    remove("cntrl.txt");
     return EXIT_SUCCESS;
 }
 
@@ -256,7 +248,7 @@ void Menu(void) {
                 continue;
             }
         }
-        else printf("ошибка ввода, попробуйте еще раз\n");
+        else printf("ошибка ввода, еще раз\n");
     }
 }
 
