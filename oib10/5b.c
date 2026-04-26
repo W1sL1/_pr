@@ -264,7 +264,7 @@ int to_int (char* str){
 }
 
 int main(int argc, char* argv[]) {
-	setlocale(LC_ALL, "Rus");
+	setlocale(LC_ALL, ".UTF8");
 	int action = 0;
 	int arg1 = to_int(argv[1]);
 	int arg2 = to_int(argv[2]);

@@ -3,21 +3,20 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <Windows.h>
 #include <locale.h>
 char file_name[] = "input.txt";
 char coding_file[]="coding.txt";
 
 int razmer(int blok) {
-	int size = 0;
-	if (blok == 8) size = 12;
-	if (blok == 12) size = 17;
-	if (blok == 16)size = 21;
-	if (blok == 24) size = 29;
-	if (blok == 32) size = 38;
-	if (blok == 48) size = 54;
-	if (blok == 64) size = 71;
-	return size;
+	int size = 0; 
+    if (blok == 8) size = 12; 
+    if (blok == 12) size = 17;
+	if (blok == 16)size = 21; 
+    if (blok == 24) size = 29; 
+    if (blok == 32) size = 38;
+	if (blok == 48) size = 54; 
+    if (blok == 64) size = 71; 
+    return size;
 }
 
 int transfer_to_bit(char* file_name, char* name) {
@@ -210,10 +209,7 @@ int delete_cbits(int blok) {
 	return 0;
 }
 int coding(int blok) {
-	//int blok = 0;
 	int size = 0;
-	//printf("Введите размер текстового блока(8,12,16,24,32,48,64): ");
-	//scanf_s("%d", &blok);
 	if ((size = razmer(blok)) == 0) {
 		printf("Неверный размер!\n");
 		return 1;
@@ -226,10 +222,7 @@ int coding(int blok) {
 	return 0;
 }
 int decoding(int blok) {
-	//int blok = 0;
 	int size = 0;
-	//printf("Введите размер текстового блока(8,12,16,24,32,48,64): ");
-	//scanf_s("%d", &blok);
 	if ((size = razmer(blok)) == 0) {
 		printf("Неверный размер!\n");
 		return 1;
@@ -264,28 +257,22 @@ int to_int (char* str){
 }
 
 int main(int argc, char* argv[]) {
-	setlocale(LC_ALL, "Rus");
+	setlocale(LC_ALL, ".UTF8");
 	int action = 0;
 	int arg1 = to_int(argv[1]);
 	int arg2 = to_int(argv[2]);
-
 	while (action!=3) {
 		printf("Введите действие:\n1: Кодирование\n2: Декодирование\n3: Выход из программы\n");
 		scanf("%d", &action);
 		if (action == 1 || action == 2 || action == 3) {
 			if (action == 1) {
 				coding(arg1);
-				//printf("%s ", argv[1]);
-				//printf("%d\n", arg1);
 			}
 			if (action == 2) {
 				decoding(arg2);
-				//printf("%s ", argv[2]);
-				//printf("%d\n", arg2);
 			}
 		}
 		else printf("Такого действия нет\n");
 	}
-
 	return 0;
 }
