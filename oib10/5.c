@@ -5,6 +5,7 @@
 #include <locale.h>
 char file_name[] = "input.txt";
 char coding_file[]="coding.txt";
+// ./ 64(cod) 64(decod)
 
 // Определяет общий размер блока (данные + контрольные биты)
 int razmer(int blok) {
