@@ -25,9 +25,11 @@ typedef struct Node {
 static char *trim(char *s) {
     while (isspace((unsigned char)*s)) s++;
     if (*s == '\0') return s;
-    char *e = s + strlen(s) - 1;
-    while (e > s && isspace((unsigned char)*e)) e--;
-    e[1] = '\0';
+    {
+        char *e = s + strlen(s) - 1;
+        while (e > s && isspace((unsigned char)*e)) e--;
+        e[1] = '\0';
+    }
     return s;
 }
 
@@ -144,10 +146,7 @@ static void put_str(char **canvas, int rows, int cols, int r, int c, const char 
 }
 
 static void draw_tree(Node *node, char **canvas, int rows, int cols, int r, int left, int right, int min_gap) {
-    int mid;
-    int next_row;
-    int span;
-    int half;
+    int mid, next_row, span, half;
     char buf[64];
 
     if (!node || r >= rows || left > right) return;
@@ -159,17 +158,24 @@ static void draw_tree(Node *node, char **canvas, int rows, int cols, int r, int 
     next_row = r + 2;
     if (next_row >= rows) return;
 
-    /* Минимальный отступ, чтобы сжимать большие деревья */
     span = right - left + 1;
     half = span / 2;
     if (half < min_gap) half = min_gap;
 
     if (node->left) {
         int lmid = mid - half / 2;
-        int bcol;
+        int bcol, x;
 
         if (lmid < left) lmid = left;
-        bcol = (mid + lmid) / 2;
+
+        /* Слеш прямо над левым ребенком */
+        bcol = lmid;
+
+        /* Горизонтальная линия '_' от ребенка к родителю */
+        for (x = lmid + 1; x < mid; x++) {
+            if (r >= 0 && r < rows && x >= 0 && x < cols && canvas[r][x] == ' ')
+                canvas[r][x] = '_';
+        }
 
         if (r + 1 < rows && bcol >= 0 && bcol < cols) canvas[r + 1][bcol] = '/';
         draw_tree(node->left, canvas, rows, cols, next_row, left, mid - 1, min_gap);
@@ -177,10 +183,18 @@ static void draw_tree(Node *node, char **canvas, int rows, int cols, int r, int 
 
     if (node->right) {
         int rmid = mid + half / 2;
-        int bcol;
+        int bcol, x;
 
         if (rmid > right) rmid = right;
-        bcol = (mid + rmid) / 2;
+
+        /* Бэкслеш прямо над правым ребенком */
+        bcol = rmid;
+
+        /* Горизонтальная линия '_' от родителя к ребенку */
+        for (x = mid + 1; x < rmid; x++) {
+            if (r >= 0 && r < rows && x >= 0 && x < cols && canvas[r][x] == ' ')
+                canvas[r][x] = '_';
+        }
 
         if (r + 1 < rows && bcol >= 0 && bcol < cols) canvas[r + 1][bcol] = '\\';
         draw_tree(node->right, canvas, rows, cols, next_row, mid + 1, right, min_gap);
@@ -333,8 +347,8 @@ int main(void) {
         canvas[r][cols] = '\0';
     }
 
-    /* min_gap=2 помогает ужать дерево для больших высот */
-    draw_tree(root, canvas, rows, cols, 0, 0, cols - 1, 2);
+    /* min_gap=3 -> чуть "воздушнее", подчеркивания выглядят лучше */
+    draw_tree(root, canvas, rows, cols, 0, 0, cols - 1, 3);
     print_canvas(canvas, rows, cols);
 
     for (r = 0; r < rows; r++) free(canvas[r]);
