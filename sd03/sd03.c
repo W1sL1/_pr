@@ -5,12 +5,12 @@
 #include <ctype.h>
 #include <math.h>
 
-#ifndef MY_PI
-#define MY_PI 3.14159265358979323846
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
 #endif
 
-#ifndef MY_PI_05
-#define MY_PI_05 1.57079632679489661923
+#ifndef M_PI_2
+#define M_PI_2 1.57079632679489661923
 #endif
 
 #define MAX_VARIABLES 100
@@ -363,7 +363,7 @@ double evaluatePostfixExpression(Queue* postfixQueue) {
                 }
             }
             else if (strcmp(token, "arctg") == 0) result = atan(argument);
-            else if (strcmp(token, "arcctg") == 0) result = MY_PI_05 - atan(argument);
+            else if (strcmp(token, "arcctg") == 0) result = M_PI_2 - atan(argument);
             else if (strcmp(token, "sqrt") == 0) {
                 if (argument >= 0) result = sqrt(argument);
                 else {

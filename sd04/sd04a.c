@@ -9,7 +9,7 @@
 // Структура события
 typedef struct Event {
     int year, month, day, hour, minute;
-    int weekday; // 0 - Воскресенье, 1 - Понедельник, и тд
+    int weekday; // 0 - Понедельник, 1 - Вторник, ..., 6 - Воскресенье
     char description[DESC_LEN]; // Описание события
     char place[PLACE_LEN];      // Место проведения
 } Event;
@@ -29,18 +29,18 @@ Node* add_event(Node* root, Event event);
 Node* delete_event(Node* root, Event event);
 void inorder(Node* root);
 void filter_by_place(Node* root, const char* place_substr);
-void search_by_datetime(Node* root, int year, int month, int day, int hour, int minute, int *found, clock_t *duration);
+void search_by_datetime(Node* root, int year, int month, int day, int hour, int minute, int *found);
 void save_events(Node* root, const char* filename);
 Node* load_events(const char* filename);
 void free_tree(Node* root);
 int compare_events(Event e1, Event e2);
 void print_event(Event event);
 
-// --- Функция для записи одного Event в текстовый файл как выводит в консоль ---
+//  Функция для записи одного Event в текстовый файл
 void write_event_text(FILE* f, Event* e) {
     char *weekday_names[] = {
-        "Sunday", "Monday", "Tuesday", "Wednesday",
-        "Thursday", "Friday", "Saturday"
+        "Monday", "Tuesday", "Wednesday", "Thursday",
+        "Friday", "Saturday", "Sunday"
     };
     // Формат консоли: "2026-12-12 12:12 (Saturday) | Place: anythere | description"
     fprintf(f, "%04d-%02d-%02d %02d:%02d (%s) | Place: %s | %s\n",
@@ -49,19 +49,16 @@ void write_event_text(FILE* f, Event* e) {
     );
 }
 
-// --- Функция для чтения одного Event из текстового файла (парсим одну строку, как в консоли) ---
+// Функция для чтения одного Event из текстового файла
 int read_event_text(FILE* f, Event* e) {
     char buf[DESC_LEN + PLACE_LEN + 128];
     char weekday_str[16];
 
-    // Пример строки:
-    // 2026-12-12 12:12 (Saturday) | Place: anythere | пщ вщ тщерштп
     if (!fgets(buf, sizeof(buf), f)) return 0;
 
     // Удаляем перевод строки
     buf[strcspn(buf, "\n")] = 0;
 
-    // Парсим
     // Формат: "%d-%d-%d %d:%d (%[^)]) | Place: %[^|]| %[^\n]"
     int parsed = sscanf(buf, "%d-%d-%d %d:%d (%15[^)]) | Place: %127[^|]| %255[^\n]",
         &e->year, &e->month, &e->day, &e->hour, &e->minute,
@@ -73,7 +70,7 @@ int read_event_text(FILE* f, Event* e) {
         return 0;
     }
 
-    // Удаляем завершающие пробелы у e->place (чтобы не было лишнего пробела после загрузки)
+    // Удаляем завершающие пробелы у e->place 
     size_t place_len = strlen(e->place);
     while (place_len > 0 && (e->place[place_len - 1] == ' ' || e->place[place_len - 1] == '\t')) {
         e->place[place_len - 1] = '\0';
@@ -82,8 +79,8 @@ int read_event_text(FILE* f, Event* e) {
 
     // Определить номер дня недели по строке
     char *weekday_names[] = {
-        "Sunday", "Monday", "Tuesday", "Wednesday",
-        "Thursday", "Friday", "Saturday"
+        "Monday", "Tuesday", "Wednesday", "Thursday",
+        "Friday", "Saturday", "Sunday"
     };
     int found_weekday = -1;
     for (int i = 0; i < 7; ++i) {
@@ -130,26 +127,32 @@ int main() {
             printf("Year: "); scanf("%d", &event.year);
             printf("Month: "); scanf("%d", &event.month);
             printf("Day: "); scanf("%d", &event.day);
+
             if (!is_valid_date(event.year, event.month, event.day)) {
                 printf("Invalid date!\n");
                 continue;
             }
+
             printf("Hour: "); scanf("%d", &event.hour);
             printf("Minute: "); scanf("%d", &event.minute);
+
             if (!is_valid_time(event.hour, event.minute)) {
                 printf("Invalid time!\n");
                 continue;
             }
+
             getchar(); // Считываем перевод строки
             printf("Description (up to %d chars): ", DESC_LEN-1);
             fgets(event.description, DESC_LEN, stdin);
             event.description[strcspn(event.description, "\n")] = 0; // Удаляем перевод строки
+
             printf("Place (up to %d chars): ", PLACE_LEN-1);
             fgets(event.place, PLACE_LEN, stdin);
             event.place[strcspn(event.place, "\n")] = 0;
             event.weekday = calc_weekday(event.year, event.month, event.day);
             root = add_event(root, event);
             printf("Event added!\n");
+
         } else if (choice == 2) { // Удалить событие
             Event event;
             printf("Enter date and time of event to delete:\n");
@@ -159,15 +162,18 @@ int main() {
             printf("Hour: "); scanf("%d", &event.hour);
             printf("Minute: "); scanf("%d", &event.minute);
             event.weekday = calc_weekday(event.year, event.month, event.day);
+
             getchar(); // Считываем перевод строки
             printf("Description (up to %d chars): ", DESC_LEN-1);
             fgets(event.description, DESC_LEN, stdin);
             event.description[strcspn(event.description, "\n")] = 0;
+
             printf("Place (up to %d chars): ", PLACE_LEN-1);
             fgets(event.place, PLACE_LEN, stdin);
             event.place[strcspn(event.place, "\n")] = 0;
             root = delete_event(root, event);
             printf("Event deleted (if it was found).\n");
+            
         } else if (choice == 3) {
             inorder(root); // Выводим все события
         } else if (choice == 4) {
@@ -179,16 +185,27 @@ int main() {
             filter_by_place(root, place);
         } else if (choice == 5) {
             int y, m, d, h, min, found = 0;
-            clock_t begin, end;
+            struct timespec begin, end;
+            double elapsed;
             printf("Year: "); scanf("%d", &y);
             printf("Month: "); scanf("%d", &m);
             printf("Day: "); scanf("%d", &d);
             printf("Hour: "); scanf("%d", &h);
             printf("Minute: "); scanf("%d", &min);
-            begin = clock();
-            search_by_datetime(root, y, m, d, h, min, &found, &begin);
-            end = clock();
-            printf("Search time: %.6f seconds\n", (double)(end - begin) / CLOCKS_PER_SEC);
+
+            // Используем clock_gettime для точного измерения
+            if (clock_gettime(CLOCK_MONOTONIC, &begin) != 0) {
+                perror("clock_gettime");
+            }
+
+            search_by_datetime(root, y, m, d, h, min, &found);
+
+            if (clock_gettime(CLOCK_MONOTONIC, &end) != 0) {
+                perror("clock_gettime");
+            }
+
+            elapsed = (end.tv_sec - begin.tv_sec) + (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
+            printf("Search time: %.9f seconds\n", elapsed);
             if (!found) printf("Event not found.\n");
         } else if (choice == 6) {
             char fname[128];
@@ -232,16 +249,19 @@ int is_valid_time(int hour, int minute) {
     return (hour >= 0 && hour < 24 && minute >= 0 && minute < 60);
 }
 
-// Алгоритм Целлера для вычисления дня недели: 0-Воскресенье, 1-Понедельник и т.д.
+// Алгоритм Целлера для вычисления дня недели: 0-Понедельник, 1-Вторник, ..., 6-Воскресенье
 int calc_weekday(int year, int month, int day) {
+    // Целлер возвращает: 0=Суббота, 1=Воскресенье, ..., 6=Пятница
+    // Нужно получить: 0=Понедельник, ..., 6=Воскресенье
     if (month < 3) { month += 12; year--; }
     int K = year % 100;
     int J = year / 100;
     int h = (day + 13*(month+1)/5 + K + K/4 + J/4 + 5*J) % 7;
-    // В оригинале алгоритма: 0=Суббота, 1=Воскресенье,...,5=Четверг,6=Пятница
-    // Преобразование: 0=Воскресенье,..,6=Суббота
-    int res = (h+6)%7;
-    return res;
+    // h: 0=Суббота, 1=Воскресенье, ..., 6=Пятница
+    // map: Пн=0,Вт=1,Ср=2,Чт=3,Пт=4,Сб=5,Вс=6
+    int orig_weekday = h; // 0=Сб, ..., 6=Пт
+    int convert[] = {5, 6, 0, 1, 2, 3, 4}; // Целлер->наш индекс
+    return convert[orig_weekday];
 }
 
 // Сравнение двух событий для сортировки по дате, времени, описанию и месту
@@ -308,8 +328,8 @@ Node* delete_event(Node* root, Event event) {
 // Вывод информации о событии
 void print_event(Event event) {
     char *weekday_names[] = {
-        "Sunday", "Monday", "Tuesday", "Wednesday",
-        "Thursday", "Friday", "Saturday"
+        "Monday", "Tuesday", "Wednesday", "Thursday",
+        "Friday", "Saturday", "Sunday"
     };
     printf("%04d-%02d-%02d %02d:%02d (%s) | Place: %s | %s\n",
         event.year, event.month, event.day, event.hour, event.minute,
@@ -334,17 +354,16 @@ void filter_by_place(Node* root, const char* place_substr) {
     filter_by_place(root->right, place_substr);
 }
 
-// Поиск события по дате и времени
-void search_by_datetime(Node* root, int year, int month, int day, int hour, int minute, int *found, clock_t *start_time) {
+void search_by_datetime(Node* root, int year, int month, int day, int hour, int minute, int *found) {
     if (!root) return;
-    search_by_datetime(root->left, year, month, day, hour, minute, found, start_time);
+    search_by_datetime(root->left, year, month, day, hour, minute, found);
     if (root->event.year == year && root->event.month == month && root->event.day == day &&
         root->event.hour == hour && root->event.minute == minute)
     {
         print_event(root->event);
         *found = 1;
     }
-    search_by_datetime(root->right, year, month, day, hour, minute, found, start_time);
+    search_by_datetime(root->right, year, month, day, hour, minute, found);
 }
 
 // Рекурсивная запись событий в текстовый файл (формат консоли)

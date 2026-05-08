@@ -6,59 +6,59 @@
 #include <math.h>
 
 #ifndef MY_PI
-#define MY_PI 3.14159265358979323846
+#define MY_PI 3.14159265358979323846 // Определение числа Пи, если не определено в math.h
 #endif
 
 #ifndef MY_PI_05
-#define MY_PI_05 1.57079632679489661923
+#define MY_PI_05 1.57079632679489661923 // Определение Пи/2, если не определено в math.h
 #endif
 
-#define MAX_VARIABLES 100
-#define MAX_TOKEN_LENGTH 100
+#define MAX_VARIABLES 100 // Максимальное количество переменных
+#define MAX_TOKEN_LENGTH 100 // Максимальная длина токена (числа, оператора, функции)
 
-typedef struct StringNode {
+typedef struct StringNode { // Узел для хранения строк (операторов, функций)
     char data[MAX_TOKEN_LENGTH];
     struct StringNode* next;
 } StringNode;
 
-typedef struct {
+typedef struct { // Очередь строк (для выходной очереди постфиксной записи)
     StringNode* head;
     StringNode* tail;
 } Queue;
 
-typedef struct {
+typedef struct { // Стек строк (для операторов при парсинге)
     StringNode* top;
 } StringStack;
 
-typedef struct {
+typedef struct { // Структура для хранения переменной и её значения
     char name[MAX_TOKEN_LENGTH];
     double value;
 } Variable;
 
-typedef struct NumberNode {
+typedef struct NumberNode { // Узел для хранения чисел в стеке вычислений
     double value;
     struct NumberNode* next;
 } NumberNode;
 
-typedef struct {
+typedef struct { // Стек чисел (для вычисления постфиксного выражения)
     NumberNode* top;
 } NumberStack;
 
-Variable variables[MAX_VARIABLES];
-int variableCount = 0;
+Variable variables[MAX_VARIABLES]; // Массив всех переменных
+int variableCount = 0; // Текущее количество сохранённых переменных
 
-void initNumberStack(NumberStack* stack) {
+void initNumberStack(NumberStack* stack) { // Инициализация пустого числового стека
     stack->top = NULL;
 }
 
-void pushNumber(NumberStack* stack, double value) {
+void pushNumber(NumberStack* stack, double value) { // Поместить число в стек
     NumberNode* newNode = (NumberNode*)malloc(sizeof(NumberNode));
     newNode->value = value;
     newNode->next = stack->top;
     stack->top = newNode;
 }
 
-double popNumber(NumberStack* stack) {
+double popNumber(NumberStack* stack) { // Извлечь число из стека
     if (stack->top == NULL) return 0;
     NumberNode* temp = stack->top;
     double value = temp->value;
@@ -67,22 +67,22 @@ double popNumber(NumberStack* stack) {
     return value;
 }
 
-int isNumberStackEmpty(NumberStack* stack) {
+int isNumberStackEmpty(NumberStack* stack) { // Проверка, пуст ли числовой стек
     return stack->top == NULL;
 }
 
-void initStringStack(StringStack* stack) {
+void initStringStack(StringStack* stack) { // Инициализация пустого строкового стека
     stack->top = NULL;
 }
 
-void pushString(StringStack* stack, const char* value) {
+void pushString(StringStack* stack, const char* value) { // Поместить строку в стек
     StringNode* newNode = (StringNode*)malloc(sizeof(StringNode));
     strcpy(newNode->data, value);
     newNode->next = stack->top;
     stack->top = newNode;
 }
 
-char* popString(StringStack* stack) {
+char* popString(StringStack* stack) { // Извлечь строку из стека (с копированием)
     if (stack->top == NULL) return NULL;
     StringNode* temp = stack->top;
     char* value = (char*)malloc(MAX_TOKEN_LENGTH * sizeof(char));
@@ -92,20 +92,20 @@ char* popString(StringStack* stack) {
     return value;
 }
 
-char* peekString(StringStack* stack) {
+char* peekString(StringStack* stack) { // Посмотреть верхушку стека без извлечения
     if (stack->top == NULL) return NULL;
     return stack->top->data;
 }
 
-int isStringStackEmpty(StringStack* stack) {
+int isStringStackEmpty(StringStack* stack) { // Проверка, пуст ли строковый стек
     return stack->top == NULL;
 }
 
-void initQueue(Queue* queue) {
+void initQueue(Queue* queue) { // Инициализация пустой очереди
     queue->head = queue->tail = NULL;
 }
 
-void enqueue(Queue* queue, const char* value) {
+void enqueue(Queue* queue, const char* value) { // Добавить строку в конец очереди
     StringNode* newNode = (StringNode*)malloc(sizeof(StringNode));
     strcpy(newNode->data, value);
     newNode->next = NULL;
@@ -119,7 +119,7 @@ void enqueue(Queue* queue, const char* value) {
     }
 }
 
-char* dequeue(Queue* queue) {
+char* dequeue(Queue* queue) { // Извлечь строку из начала очереди
     if (queue->head == NULL) return NULL;
     StringNode* temp = queue->head;
     char* value = (char*)malloc(MAX_TOKEN_LENGTH * sizeof(char));
@@ -130,18 +130,18 @@ char* dequeue(Queue* queue) {
     return value;
 }
 
-int isQueueEmpty(Queue* queue) {
+int isQueueEmpty(Queue* queue) { // Проверка, пуста ли очередь
     return queue->head == NULL;
 }
 
-void freeQueue(Queue* queue) {
+void freeQueue(Queue* queue) { // Полная очистка очереди с освобождением памяти
     while (!isQueueEmpty(queue)) {
         char* val = dequeue(queue);
         free(val);
     }
 }
 
-int getOperatorPrecedence(const char* operator) {
+int getOperatorPrecedence(const char* operator) { // Приоритет оператора (чем больше, тем выше)
     if (strcmp(operator, "+") == 0 || strcmp(operator, "-") == 0) return 1;
     if (strcmp(operator, "*") == 0 || strcmp(operator, "/") == 0) return 2;
     if (strcmp(operator, "^") == 0) return 3;
@@ -149,7 +149,7 @@ int getOperatorPrecedence(const char* operator) {
     return 0;
 }
 
-int isMathFunction(const char* token) {
+int isMathFunction(const char* token) { // Проверка, является ли токен математической функцией
     return (strcmp(token, "sin") == 0 || strcmp(token, "cos") == 0 ||
         strcmp(token, "tg") == 0 || strcmp(token, "ctg") == 0 ||
         strcmp(token, "arcsin") == 0 || strcmp(token, "arccos") == 0 ||
@@ -157,19 +157,19 @@ int isMathFunction(const char* token) {
         strcmp(token, "sqrt") == 0);
 }
 
-int isOperator(const char* token) {
+int isOperator(const char* token) { // Проверка, является ли токен оператором
     return (strcmp(token, "+") == 0 || strcmp(token, "-") == 0 ||
         strcmp(token, "*") == 0 || strcmp(token, "/") == 0 ||
         strcmp(token, "^") == 0 || strcmp(token, "!") == 0);
 }
 
-int isNumber(const char* token) {
+int isNumber(const char* token) { // Проверка, является ли токен числом (через strtod)
     char* endptr;
     strtod(token, &endptr);
     return *endptr == '\0';
 }
 
-int isVariable(const char* token) {
+int isVariable(const char* token) { // Проверка, является ли токен именем переменной (только буквы)
     if (isdigit(token[0]) || isMathFunction(token)) return 0;
     for (int i = 0; token[i]; i++) {
         if (!isalpha(token[i])) return 0;
@@ -177,11 +177,11 @@ int isVariable(const char* token) {
     return 1;
 }
 
-void clearVariables(void) {
+void clearVariables(void) { // Сброс всех сохранённых переменных
     variableCount = 0;
 }
 
-Queue* convertInfixToPostfix(const char* expression) {
+Queue* convertInfixToPostfix(const char* expression) { // Преобразование инфиксной записи в постфиксную (алгоритм сортировочной станции)
     StringStack operatorStack;
     Queue* outputQueue = (Queue*)malloc(sizeof(Queue));
     initStringStack(&operatorStack);
@@ -192,35 +192,35 @@ Queue* convertInfixToPostfix(const char* expression) {
     int length = strlen(expression);
 
     while (position < length) {
-        if (isspace(expression[position])) {
+        if (isspace(expression[position])) { // Пропуск пробелов
             position++;
             continue;
         }
 
-        if (isdigit(expression[position]) || isalpha(expression[position])) {
+        if (isdigit(expression[position]) || isalpha(expression[position])) { // Чтение числа или функции/переменной
             int tokenIndex = 0;
             while (position < length && (isalnum(expression[position]) || expression[position] == '.')) {
                 token[tokenIndex++] = expression[position++];
             }
             token[tokenIndex] = '\0';
 
-            if (isMathFunction(token)) {
+            if (isMathFunction(token)) { // Если функция — кладём в стек операторов
                 pushString(&operatorStack, token);
             }
-            else {
+            else { // Иначе (число или переменная) — в выходную очередь
                 enqueue(outputQueue, token);
             }
             continue;
         }
 
-        if (strchr("+-*/^!", expression[position])) {
+        if (strchr("+-*/^!", expression[position])) { // Обработка операторов
             token[0] = expression[position];
             token[1] = '\0';
 
-            if (token[0] == '-' && (position == 0 || expression[position - 1] == '(')) {
+            if (token[0] == '-' && (position == 0 || expression[position - 1] == '(')) { // Унарный минус
                 pushString(&operatorStack, "u-");
             }
-            else {
+            else { // Бинарный оператор: выталкиваем из стека более приоритетные
                 while (!isStringStackEmpty(&operatorStack) && isOperator(peekString(&operatorStack))) {
                     if ((getOperatorPrecedence(peekString(&operatorStack)) > getOperatorPrecedence(token)) ||
                         (getOperatorPrecedence(peekString(&operatorStack)) == getOperatorPrecedence(token) && strcmp(token, "^") != 0)) {
@@ -238,21 +238,21 @@ Queue* convertInfixToPostfix(const char* expression) {
             continue;
         }
 
-        if (expression[position] == '(') {
+        if (expression[position] == '(') { // Открывающая скобка — в стек
             pushString(&operatorStack, "(");
             position++;
             continue;
         }
 
-        if (expression[position] == ')') {
+        if (expression[position] == ')') { // Закрывающая скобка — выталкиваем до '('
             while (!isStringStackEmpty(&operatorStack) && strcmp(peekString(&operatorStack), "(") != 0) {
                 char* op = popString(&operatorStack);
                 enqueue(outputQueue, op);
                 free(op);
             }
-            if (!isStringStackEmpty(&operatorStack)) popString(&operatorStack);
+            if (!isStringStackEmpty(&operatorStack)) popString(&operatorStack); // Удаляем '('
 
-            if (!isStringStackEmpty(&operatorStack) && isMathFunction(peekString(&operatorStack))) {
+            if (!isStringStackEmpty(&operatorStack) && isMathFunction(peekString(&operatorStack))) { // Если перед скобкой была функция — выталкиваем
                 char* func = popString(&operatorStack);
                 enqueue(outputQueue, func);
                 free(func);
@@ -264,7 +264,7 @@ Queue* convertInfixToPostfix(const char* expression) {
         position++;
     }
 
-    while (!isStringStackEmpty(&operatorStack)) {
+    while (!isStringStackEmpty(&operatorStack)) { // Выталкиваем оставшиеся операторы в очередь
         char* op = popString(&operatorStack);
         enqueue(outputQueue, op);
         free(op);
@@ -273,7 +273,7 @@ Queue* convertInfixToPostfix(const char* expression) {
     return outputQueue;
 }
 
-double getVariableValue(const char* name) {
+double getVariableValue(const char* name) { // Получить значение переменной по имени
     for (int i = 0; i < variableCount; i++) {
         if (strcmp(variables[i].name, name) == 0) {
             return variables[i].value;
@@ -282,10 +282,10 @@ double getVariableValue(const char* name) {
     return 0.0;
 }
 
-double evaluatePostfixExpression(Queue* postfixQueue) {
+double evaluatePostfixExpression(Queue* postfixQueue) { // Вычисление постфиксного выражения
     NumberStack valueStack;
     initNumberStack(&valueStack);
-    Queue tempQueue;
+    Queue tempQueue; // Копия очереди для итерации
     initQueue(&tempQueue);
 
     StringNode* current = postfixQueue->head;
@@ -297,19 +297,19 @@ double evaluatePostfixExpression(Queue* postfixQueue) {
     while (!isQueueEmpty(&tempQueue)) {
         char* token = dequeue(&tempQueue);
 
-        if (isNumber(token)) {
+        if (isNumber(token)) { // Число — в стек
             pushNumber(&valueStack, atof(token));
         }
-        else if (isVariable(token)) {
+        else if (isVariable(token)) { // Переменная — её значение в стек
             double value = getVariableValue(token);
             pushNumber(&valueStack, value);
         }
-        else if (strcmp(token, "u-") == 0) {
+        else if (strcmp(token, "u-") == 0) { // Унарный минус — инвертирование верхнего числа
             double operand = popNumber(&valueStack);
             pushNumber(&valueStack, -operand);
         }
-        else if (isOperator(token)) {
-            if (strcmp(token, "!") == 0) {
+        else if (isOperator(token)) { // Бинарные операторы
+            if (strcmp(token, "!") == 0) { // Факториал (через гамма-функцию)
                 double operand = popNumber(&valueStack);
                 double result = tgamma(operand + 1);
                 pushNumber(&valueStack, result);
@@ -322,7 +322,7 @@ double evaluatePostfixExpression(Queue* postfixQueue) {
                 if (strcmp(token, "+") == 0) result = leftOperand + rightOperand;
                 else if (strcmp(token, "-") == 0) result = leftOperand - rightOperand;
                 else if (strcmp(token, "*") == 0) result = leftOperand * rightOperand;
-                else if (strcmp(token, "/") == 0) {
+                else if (strcmp(token, "/") == 0) { // Деление с проверкой на 0
                     if (rightOperand != 0) result = leftOperand / rightOperand;
                     else {
                         printf("Error: Division by zero!\n");
@@ -334,28 +334,28 @@ double evaluatePostfixExpression(Queue* postfixQueue) {
                 pushNumber(&valueStack, result);
             }
         }
-        else if (isMathFunction(token)) {
+        else if (isMathFunction(token)) { // Математические функции одного аргумента
             double argument = popNumber(&valueStack);
             double result = 0;
 
             if (strcmp(token, "sin") == 0) result = sin(argument);
             else if (strcmp(token, "cos") == 0) result = cos(argument);
             else if (strcmp(token, "tg") == 0) result = tan(argument);
-            else if (strcmp(token, "ctg") == 0) {
+            else if (strcmp(token, "ctg") == 0) { // Котангенс с проверкой
                 if (tan(argument) != 0) result = 1.0 / tan(argument);
                 else {
                     printf("Error: Cotangent is undefined when tan(x)=0\n");
                     result = 0;
                 }
             }
-            else if (strcmp(token, "arcsin") == 0) {
+            else if (strcmp(token, "arcsin") == 0) { // Арксинус с проверкой области определения
                 if (argument >= -1 && argument <= 1) result = asin(argument);
                 else {
                     printf("Error: Arcsin is defined only for |x| <= 1\n");
                     result = 0;
                 }
             }
-            else if (strcmp(token, "arccos") == 0) {
+            else if (strcmp(token, "arccos") == 0) { // Арккосинус с проверкой
                 if (argument >= -1 && argument <= 1) result = acos(argument);
                 else {
                     printf("Error: Arccos is defined only for |x| <= 1\n");
@@ -363,8 +363,8 @@ double evaluatePostfixExpression(Queue* postfixQueue) {
                 }
             }
             else if (strcmp(token, "arctg") == 0) result = atan(argument);
-            else if (strcmp(token, "arcctg") == 0) result = MY_PI_05 - atan(argument);
-            else if (strcmp(token, "sqrt") == 0) {
+            else if (strcmp(token, "arcctg") == 0) result = MY_PI_05 - atan(argument); // Арккотангенс через арктангенс
+            else if (strcmp(token, "sqrt") == 0) { // Корень с проверкой на отрицательное число
                 if (argument >= 0) result = sqrt(argument);
                 else {
                     printf("Error: Square root of negative number\n");
@@ -378,18 +378,18 @@ double evaluatePostfixExpression(Queue* postfixQueue) {
         free(token);
     }
 
-    double finalResult = popNumber(&valueStack);
+    double finalResult = popNumber(&valueStack); // Финальный результат
     freeQueue(&tempQueue);
 
     return finalResult;
 }
 
-void findAllVariables(Queue* postfixQueue, char* foundVariables[], int* foundCount) {
+void findAllVariables(Queue* postfixQueue, char* foundVariables[], int* foundCount) { // Поиск всех уникальных переменных в постфиксной очереди
     StringNode* current = postfixQueue->head;
     *foundCount = 0;
 
     while (current != NULL) {
-        if (isVariable(current->data) && !isMathFunction(current->data)) {
+        if (isVariable(current->data) && !isMathFunction(current->data)) { // Переменная, не функция
             int alreadyFound = 0;
             for (int i = 0; i < *foundCount; i++) {
                 if (strcmp(foundVariables[i], current->data) == 0) {
@@ -397,7 +397,7 @@ void findAllVariables(Queue* postfixQueue, char* foundVariables[], int* foundCou
                     break;
                 }
             }
-            if (!alreadyFound) {
+            if (!alreadyFound) { // Добавляем, если ещё не встречалась
                 foundVariables[*foundCount] = (char*)malloc(MAX_TOKEN_LENGTH * sizeof(char));
                 strcpy(foundVariables[*foundCount], current->data);
                 (*foundCount)++;
@@ -407,10 +407,10 @@ void findAllVariables(Queue* postfixQueue, char* foundVariables[], int* foundCou
     }
 }
 
-void inputVariableValues(char* variableNames[], int variableCountToInput) {
+void inputVariableValues(char* variableNames[], int variableCountToInput) { // Ввод значений переменных пользователем
     for (int i = 0; i < variableCountToInput; i++) {
         int existingIndex = -1;
-        for (int j = 0; j < variableCount; j++) {
+        for (int j = 0; j < variableCount; j++) { // Ищем, не определена ли уже эта переменная
             if (strcmp(variables[j].name, variableNames[i]) == 0) {
                 existingIndex = j;
                 break;
@@ -420,12 +420,12 @@ void inputVariableValues(char* variableNames[], int variableCountToInput) {
         printf("Enter value for variable %s: ", variableNames[i]);
         double value;
         scanf("%lf", &value);
-        while (getchar() != '\n');
+        while (getchar() != '\n'); // Очистка буфера ввода
 
-        if (existingIndex >= 0) {
+        if (existingIndex >= 0) { // Обновление существующей переменной
             variables[existingIndex].value = value;
         }
-        else {
+        else { // Добавление новой переменной
             strcpy(variables[variableCount].name, variableNames[i]);
             variables[variableCount].value = value;
             variableCount++;
@@ -440,25 +440,25 @@ int main() {
     printf("Supported functions: sin, cos, tg, ctg, arcsin, arccos, arctg, arcctg\n");
     printf("Variables: any alphabetic names (a, b, x, y, etc.)\n");
 
-    while (1) {
+    while (1) { // Бесконечный цикл ввода выражений
         printf("\n> ");
-        if (fgets(inputExpression, sizeof(inputExpression), stdin) == NULL) {
+        if (fgets(inputExpression, sizeof(inputExpression), stdin) == NULL) { // Чтение строки
             break;
         }
-        inputExpression[strcspn(inputExpression, "\n")] = '\0';
+        inputExpression[strcspn(inputExpression, "\n")] = '\0'; // Удаление символа новой строки
 
-        if (strcmp(inputExpression, "exit") == 0) {
+        if (strcmp(inputExpression, "exit") == 0) { // Выход по команде exit
             printf("Goodbye!\n");
             break;
         }
 
-        if (strlen(inputExpression) == 0) {
+        if (strlen(inputExpression) == 0) { // Пропуск пустой строки
             continue;
         }
 
-        clearVariables();
+        clearVariables(); // Сброс переменных перед каждым новым выражением
 
-        Queue* postfixQueue = convertInfixToPostfix(inputExpression);
+        Queue* postfixQueue = convertInfixToPostfix(inputExpression); // Преобразование в постфиксную запись
 
         if (postfixQueue == NULL) {
             printf("Error parsing expression!\n");
@@ -467,25 +467,25 @@ int main() {
 
         char* foundVariables[MAX_VARIABLES];
         int foundVariableCount = 0;
-        findAllVariables(postfixQueue, foundVariables, &foundVariableCount);
+        findAllVariables(postfixQueue, foundVariables, &foundVariableCount); // Поиск переменных
 
-        if (foundVariableCount > 0) {
+        if (foundVariableCount > 0) { // Если есть переменные — запрос значений
             printf("\nVariables detected: ");
             for (int i = 0; i < foundVariableCount; i++) {
                 printf("%s ", foundVariables[i]);
             }
             printf("\n");
             inputVariableValues(foundVariables, foundVariableCount);
-            for (int i = 0; i < foundVariableCount; i++) {
+            for (int i = 0; i < foundVariableCount; i++) { // Освобождение памяти после ввода
                 free(foundVariables[i]);
             }
         }
 
-        double result = evaluatePostfixExpression(postfixQueue);
+        double result = evaluatePostfixExpression(postfixQueue); // Вычисление результата
         printf("Result: %.10lf\n", result);
 
-        freeQueue(postfixQueue);
-        free(postfixQueue);
+        freeQueue(postfixQueue); // Очистка очереди
+        free(postfixQueue); // Освобождение самой структуры очереди
     }
 
     return 0;
