@@ -5,6 +5,10 @@
     {
       "AbsoluteMoniker": "D:0:0:{EB5C2123-332A-45C8-BD7F-DA8BF87AE359}|sdd3.vcxproj|C:\\_pr\\sdd3\\sdd3.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{EB5C2123-332A-45C8-BD7F-DA8BF87AE359}|sdd3.vcxproj|solutionrelative:sdd3.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EB5C2123-332A-45C8-BD7F-DA8BF87AE359}|sdd3.vcxproj|C:\\_pr\\sdd3\\sdd3c.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{EB5C2123-332A-45C8-BD7F-DA8BF87AE359}|sdd3.vcxproj|solutionrelative:sdd3c.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
   "DocumentGroupContainers": [
@@ -24,9 +28,23 @@
               "RelativeDocumentMoniker": "sdd3.c",
               "ToolTip": "C:\\_pr\\sdd3\\sdd3.c",
               "RelativeToolTip": "sdd3.c",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAN0AAAAbAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAALoBAAAlAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
               "WhenOpened": "2026-03-25T17:48:47.352Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "sdd3c.c",
+              "DocumentMoniker": "C:\\_pr\\sdd3\\sdd3c.c",
+              "RelativeDocumentMoniker": "sdd3c.c",
+              "ToolTip": "C:\\_pr\\sdd3\\sdd3c.c",
+              "RelativeToolTip": "sdd3c.c",
+              "ViewState": "AgIAALoBAAAAAAAAAAAgwMcBAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
+              "WhenOpened": "2026-05-11T19:56:58.515Z",
               "IsPinned": true,
               "EditorCaption": ""
             }

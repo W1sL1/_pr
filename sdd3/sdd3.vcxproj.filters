@@ -18,6 +18,9 @@
     <ClCompile Include="sdd3.c">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="sdd3c.c">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
