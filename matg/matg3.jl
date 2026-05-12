@@ -1,48 +1,48 @@
 using Plots
-# Мы не пишем using PlotlyJS, чтобы избежать конфликта имен. 
-# Просто подключаем бэкенд:
-plotlyjs() 
+plotlyjs() # подключаем бэкенд
 
 # 1. Функция и градиент
-f(x, y) = -(x^2 + y^2) + 10
-grad_f(x, y) = [-2x, -2y]
+# f(x, y) = -(x^2 + y^2) + 10 # Определяем целевую функцию (параболоид)
+f(x, y) = sin(x)*cos(y)
+grad_f(x, y) = [-2x, -2y] # Вычисляем вектор частных производных
 
 # 2. Параметры и расчет траектории
-η = 0.1
-epochs = 20
-curr_p = [4.5, 4.5]
-path = [curr_p]
+η = 0.1 # Устанавливаем размер шага (скорость обучения)
+epochs = 20 # Задаем количество итераций алгоритма
+curr_p = [4.5, 4.5] # Задаем координаты начальной точки
+path = [curr_p] # Инициализируем массив для хранения истории перемещений
 
 for i in 1:epochs
-    global curr_p
-    g = grad_f(curr_p...)
-    curr_p = curr_p + η * g
-    push!(path, curr_p)
+    global curr_p # Позволяем изменять внешнюю переменную внутри цикла
+    g = grad_f(curr_p...) # Вычисляем градиент в текущей точке
+    curr_p = curr_p + η * g # Обновляем положение, двигаясь по градиенту вверх
+    push!(path, curr_p) # Сохраняем новую точку в историю пути
 end
 
 # Подготовка координат для отрисовки
-path_x = [p[1] for p in path]
-path_y = [p[2] for p in path]
-path_z = [f(p...) for p in path]
+path_x = [p[1] for p in path] # Извлекаем все координаты X для графика
+path_y = [p[2] for p in path] # Извлекаем все координаты Y для графика
+path_z = [f(p...) for p in path] # Вычисляем значения Z для каждой точки пути
 
 # 3. Построение графика с явным указанием модуля Plots
-x_range = range(-5, 5, length=50)
-y_range = range(-5, 5, length=50)
+x_range = range(-5, 5, length=50) # Создаем сетку значений по оси X
+y_range = range(-5, 5, length=50) # Создаем сетку значений по оси Y
 
 # Используем Plots.surface вместо просто surface
-fig = Plots.surface(x_range, y_range, (x,y) -> f(x,y), 
-    alpha=0.6, 
-    title="Траектория к максимуму",
-    xlabel="X", ylabel="Y", zlabel="Z")
+fig = Plots.surface(x_range, y_range, (x,y) -> f(x,y), # Отрисовываем 3D-поверхность функции
+    alpha=0.6, # Устанавливаем прозрачность поверхности
+    title="Траектория к максимуму", # Задаем заголовок графика
+    xlabel="X", ylabel="Y", zlabel="Z") # Подписываем оси координат
 
 # Добавляем траекторию
-Plots.plot!(path_x, path_y, path_z, 
-    lw=4, lc=:red, label="Траектория", marker=(:circle, 3))
+Plots.plot!(path_x, path_y, path_z, # Накладываем линию пути на существующий график
+    lw=4, lc=:red, label="Траектория", marker=(:circle, 3)) # Стилизуем линию и маркеры шагов
 
 # Начальная точка
-Plots.scatter!([path_x[1]], [path_y[1]], [path_z[1]], 
-    color=:yellow, markersize=6, label="Старт")
+Plots.scatter!([path_x[1]], [path_y[1]], [path_z[1]], # Ставим отдельную точку на старте
+    color=:yellow, markersize=6, label="Старт") # Выделяем начало пути желтым цветом
 
 # 4. Сохранение
-Plots.savefig(fig, "gradient_ascent_3d.html")
-display(fig)
+Plots.savefig(fig, "gradient_ascent_3d.html") # Экспортируем результат в интерактивный HTML-файл
+display(fig) # Выводим готовый график в консоль или окно просмотра
+
