@@ -13,10 +13,10 @@ typedef struct Node { // Структура узла дерева
 
 // --- Базовые функции дерева ---
 
-Node* createNode(int value) { // Создание нового узла
+Node* createNode(int value) { // Создание нового узла 
     if (value == INF) return NULL; // Если значение INF, узел не создается
     Node* newNode = (Node*)malloc(sizeof(Node)); // Выделение памяти
-    newNode->data = value; // Запись данных
+    newNode->data = value; // Запись данных     newNode->data то же что и (*newNode).data 
     newNode->left = newNode->right = NULL; // Инициализация потомков
     return newNode; // Возврат узла
 }
