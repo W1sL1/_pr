@@ -1,68 +1,74 @@
-using ForwardDiff
-using PlotlyJS
+using Plots # Подключаем библиотеку для создания графиков
+using ForwardDiff # Подключаем библиотеку для автоматического дифференцирования
+plotlyjs() # Используем бэкенд Plotly для поддержки сохранения в HTML
 
-# 1. Определение функции и градиента
-f(x, y) = sin(x) * cos(y)
-f(v) = f(v[1], v[2]) # Вспомогательная функция для работы с вектором
+# 1. Определяем функцию
+f(x, y) = sin(x) * cos(y) # Целевая математическая функция двух переменных
 
-# Градиент через автоматическое дифференцирование
-∇f(v) = ForwardDiff.gradient(f, v)
+# Обертка для работы с вектором (нужна для ForwardDiff)
+f_vec(v) = f(v[1], v[2]) # Преобразуем векторный вход в скалярные аргументы x и y
 
-# 2. Алгоритм градиентного подъема (дивергентный спуск к максимуму)
-function gradient_ascent(start_point; lr=0.1, steps=50)
-    trajectory = [start_point]
-    current_p = start_point
+# 2. Градиентный подъем (Gradient Ascent)
+# Мы идем ПО градиенту, чтобы найти максимум
+function gradient_ascent(start_point; lr=0.1, eps=1e-6, max_iter=100)
+    path = [start_point] # Инициализируем массив для хранения истории перемещений
+    curr_p = start_point # Устанавливаем текущую позицию на начальную точку
     
-    for i in 1:steps
-        grad = ∇f(current_p)
-        # Идем ПО направлению градиента для поиска максимума
-        current_p = current_p + lr * grad
-        push!(trajectory, current_p)
+    for i in 1:max_iter # Запускаем цикл итераций оптимизации
+        # Вычисляем градиент в текущей точке
+        grad = ForwardDiff.gradient(f_vec, curr_p) # Находим вектор частных производных
+        
+        # Если градиент очень маленький — мы в экстремуме
+        if sqrt(sum(grad.^2)) < eps # Проверяем норму (длину) вектора градиента
+            break # Прекращаем выполнение, если достигли плато или пика
+        end
+        
+        # Делаем шаг вверх
+        curr_p = curr_p + lr * grad # Обновляем координаты, двигаясь в сторону роста функции
+        push!(path, curr_p) # Сохраняем новую точку в историю траектории
     end
-    return trajectory
+    return path # Возвращаем список всех пройденных точек
 end
 
-# Параметры поиска
-start_p = [0.5, 0.5]
-path = gradient_ascent(start_p)
+# 3. Ввод данных пользователем
+println("Введите начальную точку x:") # Выводим запрос в консоль
+user_x = parse(Float64, readline()) # Считываем строку и конвертируем в число с плавающей точкой
 
-# Подготовка данных для визуализации
-x_vals = range(-3, 3, length=100)
-y_vals = range(-3, 3, length=100)
-z_vals = [f(x, y) for x in x_vals, y in y_vals]
+println("Введите начальную точку y:") # Выводим запрос в консоль
+user_y = parse(Float64, readline()) # Считываем строку и конвертируем в число с плавающей точкой
 
-path_x = [p[1] for p in path]
-path_y = [p[2] for p in path]
-path_z = [f(p...) for p in path]
+start_p = [user_x, user_y] # Формируем вектор начального приближения
 
-# 3. Построение 3D графика
-# Поверхность функции
-surface_plot = surface(
-    z=z_vals, x=x_vals, y=y_vals, 
-    colorscale="Viridis", opacity=0.8
-)
+# Вычисляем траекторию
+trajectory = gradient_ascent(start_p) # Запускаем алгоритм поиска максимума
+path_x = [p[1] for p in trajectory] # Извлекаем координаты X для визуализации
+path_y = [p[2] for p in trajectory] # Извлекаем координаты Y для визуализации
+path_z = [f(p[1], p[2]) for p in trajectory] # Вычисляем значения функции (Z) для каждой точки пути
 
-# Траектория спуска/подъема
-path_plot = scatter3d(
-    x=path_x, y=path_y, z=path_z,
-    mode="lines+markers",
-    line=attr(color="red", width=5),
-    marker=attr(size=4, color="white"),
-    name="Траектория"
-)
+# 4. Визуализация
+println("Генерация графика...") # Сообщаем пользователю о начале рендеринга
 
-config = Layout(
-    title="Градиентный подъем: f(x,y) = sin(x)cos(y)",
-    scene=attr(xaxis_title="X", yaxis_title="Y", zaxis_title="Z"),
-    width=900, height=700
-)
+# Сетка для поверхности
+x_range = range(min(-2π, user_x-2), stop=max(2π, user_x+2), length=100) # Создаем диапазон X вокруг точки входа
+y_range = range(min(-2π, user_y-2), stop=max(2π, user_y+2), length=100) # Создаем диапазон Y вокруг точки входа
 
-# Создание и сохранение графика
-p = plot([surface_plot, path_plot], config)
+# Явный вызов surface из пакета Plots
+p = Plots.surface(x_range, y_range, f, # Отрисовываем 3D поверхность функции
+    alpha=0.7, # Устанавливаем прозрачность поверхности
+    title="Grad max", # Задаем заголовок графика
+    xlabel="X", ylabel="Y", zlabel="Z") # Подписываем оси координат
 
-# Сохранение в HTML
-open("gradient_plot.html", "w") do io
-    PlotlyJS.savefig(io, p, format="html")
-end
+# Накладываем траекторию (линия со стрелками/точками)
+Plots.plot!(p, path_x, path_y, path_z, # Добавляем линию пути поверх существующего графика
+    lc=:red, lw=3, label="Track", marker=(:circle, 4, :red)) # Настраиваем цвет, толщину и маркеры линии
 
-println("Траектория рассчитана. График сохранен в файл 'gradient_plot.html'")
+# Отмечаем начальную и конечную точки
+Plots.scatter!(p, [path_x[1]], [path_y[1]], [path_z[1]], mc=:blue, ms=6, label="Start") # Выделяем синим цветом точку старта
+Plots.scatter!(p, [path_x[end]], [path_y[end]], [path_z[end]], mc=:yellow, ms=6, label="End (max)") # Выделяем желтым цветом найденный максимум
+
+# 5. Сохранение в HTML
+filename = "gradient_trajectory.html" # Определяем имя выходного файла
+Plots.savefig(p, filename) # Записываем интерактивный график на диск
+
+println("Готово! Траектория сохранена в файл: ", filename) # Подтверждаем успешное сохранение
+println("Найдена точка максимума: (", round(path_x[end], digits=4), ", ", round(path_y[end], digits=4), ")") # Выводим финальные координаты
