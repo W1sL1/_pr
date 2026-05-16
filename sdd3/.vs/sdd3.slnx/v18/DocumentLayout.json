@@ -32,7 +32,7 @@
               "RelativeDocumentMoniker": "sdd3.c",
               "ToolTip": "C:\\_pr\\sdd3\\sdd3.c",
               "RelativeToolTip": "sdd3.c",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAMIBAAAcAAAAAAAAAA==",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAAAoAAAAYAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
               "WhenOpened": "2026-03-25T17:48:47.352Z",
               "IsPinned": true,
@@ -49,8 +49,7 @@
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAMcBAAAiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
               "WhenOpened": "2026-05-11T19:56:58.515Z",
-              "IsPinned": true,
-              "EditorCaption": ""
+              "IsPinned": true
             },
             {
               "$type": "Document",
@@ -63,8 +62,7 @@
               "ViewState": "AgIAALEBAAAAAAAAAAAgwL0BAAA0AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
               "WhenOpened": "2026-05-16T09:48:06.278Z",
-              "IsPinned": true,
-              "EditorCaption": ""
+              "IsPinned": true
             }
           ]
         }

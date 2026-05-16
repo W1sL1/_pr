@@ -6,7 +6,6 @@
 #include <string.h>
 
 #define GRID_SIZE 50
-#define GRID_STEP 0.2f
 #define MAX_FUNC_LEN 256
 
 // Структура для хранения функции
@@ -269,7 +268,7 @@ void display() {
     drawText(10, glutGet(GLUT_WINDOW_HEIGHT) - 50, info);
 
     drawText(10, 30, "Press 'f' to enter new function");
-    drawText(10, 10, "Press 'r' to reset view, ESC to exit");
+    drawText(10, 10, "Press ESC to exit");
 
     if (inputMode) {
         drawText(glutGet(GLUT_WINDOW_WIDTH) / 2 - 200,
@@ -364,37 +363,6 @@ void keyboard(unsigned char key, int x, int y) {
         printf("Examples: sin(x)*cos(y), x*x - y*y, sin(sqrt(x*x + y*y))\n");
         glutPostRedisplay();
         break;
-    case 'r': case 'R':
-        rotX = 30.0f;
-        rotY = 0.0f;
-        rotZ = 0.0f;
-        scale = 1.0f;
-        glutPostRedisplay();
-        break;
-    case 'x': // Увеличить диапазон X
-        currentFunc.minX *= 1.2f;
-        currentFunc.maxX *= 1.2f;
-        computeFunction();
-        glutPostRedisplay();
-        break;
-    case 'X': // Уменьшить диапазон X
-        currentFunc.minX *= 0.8f;
-        currentFunc.maxX *= 0.8f;
-        computeFunction();
-        glutPostRedisplay();
-        break;
-    case 'y': // Увеличить диапазон Y
-        currentFunc.minY *= 1.2f;
-        currentFunc.maxY *= 1.2f;
-        computeFunction();
-        glutPostRedisplay();
-        break;
-    case 'Y': // Уменьшить диапазон Y
-        currentFunc.minY *= 0.8f;
-        currentFunc.maxY *= 0.8f;
-        computeFunction();
-        glutPostRedisplay();
-        break;
     case 27: // ESC
         free(zValues);
         free(colors);
@@ -442,9 +410,6 @@ int main(int argc, char** argv) {
     printf("  Left mouse button + drag - rotate\n");
     printf("  Mouse wheel - zoom\n");
     printf("  F - enter new function\n");
-    printf("  X/x - increase/decrease X range\n");
-    printf("  Y/y - increase/decrease Y range\n");
-    printf("  R - reset view\n");
     printf("  ESC - exit\n");
     printf("\nAvailable functions in this demo:\n");
     printf("  sin(x)*cos(y)\n");
