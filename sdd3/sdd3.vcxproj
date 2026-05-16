@@ -127,6 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="backup.c" />
     <ClCompile Include="sdd3.c" />
     <ClCompile Include="sdd3c.c" />
   </ItemGroup>
