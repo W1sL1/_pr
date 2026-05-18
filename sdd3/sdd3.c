@@ -1,429 +1,244 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include <GL/glut.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
-#define GRID_SIZE 50
-#define MAX_FUNC_LEN 256
+// Константа Пи для математических расчетов
+#define M_PI 3.14159265358979323846
 
-// Структура для хранения функции
-typedef struct {
-    char expression[MAX_FUNC_LEN];
-    float minX, maxX;
-    float minY, maxY;
-    float minZ, maxZ;
-} Function;
+// --- Глобальные переменные для управления камерой ---
+float rotationX = 60.0f;   // Начальный угол поворота по X
+float rotationY = 0.0f;    // Начальный угол поворота по Y
+float zoom = -15.0f;       // Дистанция камеры (зум)
+int lastMouseX, lastMouseY; // Последние координаты мыши
+int isDragging = 0;        // Флаг удержания кнопки мыши
 
-Function currentFunc;
+// --- Управление функциями ---
+int currentFunctionIndex = 0; // Индекс текущей функции
+const int totalFunctions = 6;  // Всего функций в программе
 
-// Углы поворота камеры
-float rotX = 30.0f;
-float rotY = 0.0f;
-float rotZ = 0.0f;
+// --- Прототипы функций ---
+void printMenu(void);
+float evaluateFunction(int index, float x, float y);
+const char* getFunctionName(int index);
 
-// Масштаб
-float scale = 1.0f;
+// --- БЛОК МАТЕМАТИЧЕСКИХ ФУНКЦИЙ ---
 
-// Последние позиции мыши для вращения
-int lastMouseX = 0;
-int lastMouseY = 0;
-int mouseRotating = 0;
-
-// Режим ввода
-int inputMode = 0;
-char inputBuffer[MAX_FUNC_LEN] = "";
-int inputPos = 0;
-
-// Кэш значений функции
-float* zValues = NULL;
-float* colors = NULL;
-
-// Простой интерпретатор математических выражений
-float evaluateFunction(float x, float y) {
-    // Это упрощенный пример - в реальности здесь нужен полноценный парсер
-    // Для демонстрации я реализую несколько предопределенных функций
-
-    if (strcmp(currentFunc.expression, "sin(x)*cos(y)") == 0) {
-        return sin(x) * cos(y);
-    }
-    else if (strcmp(currentFunc.expression, "x*x - y*y") == 0) {
-        return x * x - y * y;
-    }
-    else if (strcmp(currentFunc.expression, "sin(sqrt(x*x + y*y))") == 0) {
-        float r = sqrt(x * x + y * y);
-        return sin(r);
-    }
-    else if (strcmp(currentFunc.expression, "0.5*(x*x + y*y)") == 0) {
-        return 0.5f * (x * x + y * y);
-    }
-    else if (strcmp(currentFunc.expression, "exp(-0.5*(x*x+y*y))") == 0) {
-        return exp(-0.5f * (x * x + y * y));
-    }
-    else if (strcmp(currentFunc.expression, "sin(x)*sin(y)") == 0) {
-        return sin(x) * sin(y);
-    }
-    else if (strcmp(currentFunc.expression, "x*y") == 0) {
-        return x * y;
-    }
-    else if (strcmp(currentFunc.expression, "sin(x+y)") == 0) {
-        return sin(x + y);
-    }
-    else {
-        // По умолчанию
-        return sin(x) * cos(y);
+// Вычисление значения Z на основе выбранной функции
+float evaluateFunction(int index, float x, float y) {
+    switch (index) {
+        case 0: 
+            return sinf(x) * cosf(y);
+        case 1: { // Sombrero (Мексиканская шляпа)
+            float r = sqrtf(x * x + y * y);
+            return (r == 0.0f) ? 1.0f : sinf(r) / r;
+        }
+        case 2: // Hyperbolic Paraboloid (Седло)
+            return (x * x - y * y) * 0.1f;
+        case 3: // Paraboloid (Параболоид)
+            return (x * x + y * y) * 0.05f;
+        case 4: // Egg-carton (Волны / Ячеистая поверхность)
+            return (cosf(x) + cosf(y)) * 0.5f;
+        case 5: // Gaussian Hill (Гауссиана)
+            return expf(-(x * x + y * y) * 0.1f) * 2.0f;
+        default: 
+            return 0.0f;
     }
 }
 
-// Вычисление всех значений функции и определение диапазона
-void computeFunction() {
-    if (zValues == NULL) {
-        zValues = (float*)malloc(GRID_SIZE * GRID_SIZE * sizeof(float));
-        colors = (float*)malloc(GRID_SIZE * GRID_SIZE * 3 * sizeof(float));
+// Получение строкового имени функции для вывода в консоль
+const char* getFunctionName(int index) {
+    switch (index) {
+        case 0: return "sin(x) * cos(y)";
+        case 1: return "sin(sqrt(x^2 + y^2)) / sqrt(x^2 + y^2) [Sombrero]";
+        case 2: return "(x^2 - y^2) * 0.1 [Saddle]";
+        case 3: return "(x^2 + y^2) * 0.05 [Paraboloid]";
+        case 4: return "(cos(x) + cos(y)) * 0.5 [Ripples]";
+        case 5: return "2 * exp(-0.1 * (x^2 + y^2)) [Gaussian]";
+        default: return "Unknown";
     }
-
-    currentFunc.minZ = 1e10f;
-    currentFunc.maxZ = -1e10f;
-
-    // Вычисляем все значения
-    for (int i = 0; i < GRID_SIZE; i++) {
-        for (int j = 0; j < GRID_SIZE; j++) {
-            float x = currentFunc.minX + (currentFunc.maxX - currentFunc.minX) * i / (GRID_SIZE - 1);
-            float y = currentFunc.minY + (currentFunc.maxY - currentFunc.minY) * j / (GRID_SIZE - 1);
-
-            float z = evaluateFunction(x, y);
-            zValues[i * GRID_SIZE + j] = z;
-
-            if (z < currentFunc.minZ) currentFunc.minZ = z;
-            if (z > currentFunc.maxZ) currentFunc.maxZ = z;
-        }
-    }
-
-    // Вычисляем цвета
-    float range = currentFunc.maxZ - currentFunc.minZ;
-    if (range < 0.0001f) range = 1.0f;
-
-    for (int i = 0; i < GRID_SIZE; i++) {
-        for (int j = 0; j < GRID_SIZE; j++) {
-            float z = zValues[i * GRID_SIZE + j];
-            float t = (z - currentFunc.minZ) / range;
-
-            int idx = (i * GRID_SIZE + j) * 3;
-            colors[idx] = t;        // Красный
-            colors[idx + 1] = 0.2f;  // Зеленый
-            colors[idx + 2] = 1.0f - t; // Синий
-        }
-    }
-
-    printf("Function range: [%.3f, %.3f]\n", currentFunc.minZ, currentFunc.maxZ);
 }
 
-// Инициализация функции по умолчанию
-void initDefaultFunction() {
-    strcpy(currentFunc.expression, "sin(x)*cos(y)");
-    currentFunc.minX = -5.0f;
-    currentFunc.maxX = 5.0f;
-    currentFunc.minY = -5.0f;
-    currentFunc.maxY = 5.0f;
-
-    computeFunction();
+// Вывод интерфейса и управления в консоль Windows
+void printMenu(void) {
+    system("cls"); // Очистка консоли (работает в Windows)
+    printf("=== 3D Graph Visualizer ===\n");
+    printf("Current function: %s\n", getFunctionName(currentFunctionIndex));
+    printf("Controls:\n");
+    printf("  Left mouse button + drag - rotate\n");
+    printf("  Mouse wheel - zoom\n");
+    printf("  F/f - enter new function\n");
+    printf("  ESC - exit\n");
+    printf("Available functions:\n");
+    for (int i = 0; i < totalFunctions; i++) {
+        printf("  %d. %s\n", i + 1, getFunctionName(i));
+    }
+    printf("===========================\n");
 }
 
-void drawGraph() {
-    glPushMatrix();
+// --- БЛОК ОТРИСОВКИ (OPENGL) ---
 
-    // Рисуем поверхность в виде треугольников
-    glBegin(GL_TRIANGLES);
-    for (int i = 0; i < GRID_SIZE - 1; i++) {
-        for (int j = 0; j < GRID_SIZE - 1; j++) {
-            float x1 = currentFunc.minX + (currentFunc.maxX - currentFunc.minX) * i / (GRID_SIZE - 1);
-            float y1 = currentFunc.minY + (currentFunc.maxY - currentFunc.minY) * j / (GRID_SIZE - 1);
-            float x2 = currentFunc.minX + (currentFunc.maxX - currentFunc.minX) * (i + 1) / (GRID_SIZE - 1);
-            float y2 = currentFunc.minY + (currentFunc.maxY - currentFunc.minY) * (j + 1) / (GRID_SIZE - 1);
-
-            float z1 = zValues[i * GRID_SIZE + j];
-            float z2 = zValues[(i + 1) * GRID_SIZE + j];
-            float z3 = zValues[i * GRID_SIZE + (j + 1)];
-            float z4 = zValues[(i + 1) * GRID_SIZE + (j + 1)];
-
-            float nx, ny, nz;
-
-            // Треугольник 1-2-3
-            float v1x = x2 - x1, v1y = y2 - y1, v1z = z2 - z1;
-            float v2x = x1 - x1, v2y = y2 - y1, v2z = z3 - z1;
-            nx = v1y * v2z - v1z * v2y;
-            ny = v1z * v2x - v1x * v2z;
-            nz = v1x * v2y - v1y * v2x;
-            float len = sqrt(nx * nx + ny * ny + nz * nz);
-            if (len > 0) { nx /= len; ny /= len; nz /= len; }
-
-            glNormal3f(nx, ny, nz);
-
-            int idx1 = (i * GRID_SIZE + j) * 3;
-            int idx2 = ((i + 1) * GRID_SIZE + j) * 3;
-            int idx3 = (i * GRID_SIZE + (j + 1)) * 3;
-
-            glColor3f(colors[idx1], colors[idx1 + 1], colors[idx1 + 2]);
-            glVertex3f(x1, z1, -y1);
-            glColor3f(colors[idx2], colors[idx2 + 1], colors[idx2 + 2]);
-            glVertex3f(x2, z2, -y2);
-            glColor3f(colors[idx3], colors[idx3 + 1], colors[idx3 + 2]);
-            glVertex3f(x1, z3, -y2);
-
-            // Треугольник 2-4-3
-            v1x = x2 - x2; v1y = y2 - y2; v1z = z4 - z2;
-            v2x = x1 - x2; v2y = y2 - y1; v2z = z3 - z2;
-            nx = v1y * v2z - v1z * v2y;
-            ny = v1z * v2x - v1x * v2z;
-            nz = v1x * v2y - v1y * v2x;
-            len = sqrt(nx * nx + ny * ny + nz * nz);
-            if (len > 0) { nx /= len; ny /= len; nz /= len; }
-
-            glNormal3f(nx, ny, nz);
-
-            int idx4 = ((i + 1) * GRID_SIZE + (j + 1)) * 3;
-
-            glColor3f(colors[idx2], colors[idx2 + 1], colors[idx2 + 2]);
-            glVertex3f(x2, z2, -y2);
-            glColor3f(colors[idx4], colors[idx4 + 1], colors[idx4 + 2]);
-            glVertex3f(x2, z4, -y2);
-            glColor3f(colors[idx3], colors[idx3 + 1], colors[idx3 + 2]);
-            glVertex3f(x1, z3, -y2);
-        }
-    }
-    glEnd();
-
-    // Рисуем оси координат
-    glDisable(GL_LIGHTING);
+// Отрисовка координатных осей (X - Красная, Y - Зеленая, Z - Синяя)
+void drawAxes(void) {
     glBegin(GL_LINES);
-    // Ось X (красная)
+    // Ось X
     glColor3f(1.0f, 0.0f, 0.0f);
-    glVertex3f(currentFunc.minX - 0.5f, 0.0f, 0.0f);
-    glVertex3f(currentFunc.maxX + 0.5f, 0.0f, 0.0f);
-
-    // Ось Y (зеленая)
+    glVertex3f(-7.0f, 0.0f, 0.0f); glVertex3f(7.0f, 0.0f, 0.0f);
+    // Ось Y
     glColor3f(0.0f, 1.0f, 0.0f);
-    glVertex3f(0.0f, currentFunc.minZ - 0.5f, 0.0f);
-    glVertex3f(0.0f, currentFunc.maxZ + 0.5f, 0.0f);
-
-    // Ось Z (синяя)
+    glVertex3f(0.0f, -7.0f, 0.0f); glVertex3f(0.0f, 7.0f, 0.0f);
+    // Ось Z
     glColor3f(0.0f, 0.0f, 1.0f);
-    glVertex3f(0.0f, 0.0f, -currentFunc.maxY - 0.5f);
-    glVertex3f(0.0f, 0.0f, -currentFunc.minY + 0.5f);
+    glVertex3f(0.0f, 0.0f, -7.0f); glVertex3f(0.0f, 0.0f, 7.0f);
     glEnd();
-    glEnable(GL_LIGHTING);
-
-    glPopMatrix();
 }
 
-void drawText(float x, float y, const char* text) {
-    glDisable(GL_LIGHTING);
-    glDisable(GL_DEPTH_TEST);
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    gluOrtho2D(0, glutGet(GLUT_WINDOW_WIDTH), 0, glutGet(GLUT_WINDOW_HEIGHT));
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+// Отрисовка 3D графика функции в виде сетки (Wireframe)
+void drawGraph(void) {
+    float step = 0.2f;      // Шаг сетки (чем меньше, тем детализированнее)
+    float range = 6.0f;     // Диапазон отрисовки от -range до range
 
-    glColor3f(1.0f, 1.0f, 1.0f);
-    glRasterPos2f(x, y);
+    // Переключаем режим отображения на линии (сетка), чтобы график был прозрачным и четким
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    
+    glBegin(GL_QUADS);
+    for (float x = -range; x < range; x += step) {
+        for (float y = -range; y < range; y += step) {
+            
+            // Вычисляем координаты Z для 4 точек полигона
+            float z1 = evaluateFunction(currentFunctionIndex, x, y);
+            float z2 = evaluateFunction(currentFunctionIndex, x + step, y);
+            float z3 = evaluateFunction(currentFunctionIndex, x + step, y + step);
+            float z4 = evaluateFunction(currentFunctionIndex, x, y + step);
 
-    for (const char* c = text; *c != '\0'; c++) {
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
+            // Динамический цвет зависит от высоты Z (создает красивый градиент)
+            glColor3f((z1 + 1.0f) * 0.5f, 0.4f, 1.0f - (z1 + 1.0f) * 0.5f);
+            glVertex3f(x, y, z1);
+
+            glColor3f((z2 + 1.0f) * 0.5f, 0.4f, 1.0f - (z2 + 1.0f) * 0.5f);
+            glVertex3f(x + step, y, z2);
+
+            glColor3f((z3 + 1.0f) * 0.5f, 0.4f, 1.0f - (z3 + 1.0f) * 0.5f);
+            glVertex3f(x + step, y + step, z3);
+
+            glColor3f((z4 + 1.0f) * 0.5f, 0.4f, 1.0f - (z4 + 1.0f) * 0.5f);
+            glVertex3f(x, y + step, z4);
+        }
     }
-
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
+    glEnd();
+    
+    // Возвращаем режим заполнения полигонов по умолчанию
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void display() {
+// Главный callback отрисовки GLUT
+void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
 
     // Позиционирование камеры
-    glTranslatef(0.0f, 0.0f, -15.0f);
-    glRotatef(rotX, 1.0f, 0.0f, 0.0f);
-    glRotatef(rotY, 0.0f, 1.0f, 0.0f);
-    glRotatef(rotZ, 0.0f, 0.0f, 1.0f);
-    glScalef(scale, scale, scale);
+    glTranslatef(0.0f, 0.0f, zoom);
+    glRotatef(rotationX, 1.0f, 0.0f, 0.0f);
+    glRotatef(rotationY, 0.0f, 0.0f, 1.0f); // Вращение вокруг вертикальной оси Z
 
+    drawAxes();
     drawGraph();
-
-    // Отображение информации на экране
-    char info[256];
-    sprintf(info, "Function: f(x,y) = %s", currentFunc.expression);
-    drawText(10, glutGet(GLUT_WINDOW_HEIGHT) - 30, info);
-
-    sprintf(info, "Range: x=[%.1f,%.1f] y=[%.1f,%.1f] z=[%.2f,%.2f]",
-        currentFunc.minX, currentFunc.maxX,
-        currentFunc.minY, currentFunc.maxY,
-        currentFunc.minZ, currentFunc.maxZ);
-    drawText(10, glutGet(GLUT_WINDOW_HEIGHT) - 50, info);
-
-    drawText(10, 30, "Press 'f' to enter new function");
-    drawText(10, 10, "Press ESC to exit");
-
-    if (inputMode) {
-        drawText(glutGet(GLUT_WINDOW_WIDTH) / 2 - 200,
-            glutGet(GLUT_WINDOW_HEIGHT) / 2,
-            "Enter function (press ENTER to confirm):");
-
-        char displayBuffer[MAX_FUNC_LEN + 20];
-        sprintf(displayBuffer, "f(x,y) = %s", inputBuffer);
-        drawText(glutGet(GLUT_WINDOW_WIDTH) / 2 - 200,
-            glutGet(GLUT_WINDOW_HEIGHT) / 2 - 30,
-            displayBuffer);
-    }
 
     glutSwapBuffers();
 }
 
+// Настройка проекции при изменении размеров окна
 void reshape(int w, int h) {
+    if (h == 0) h = 1;
+    float aspect = (float)w / (float)h;
+
     glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(45.0f, (float)w / (float)h, 1.0f, 100.0f);
+    gluPerspective(45.0, aspect, 0.1, 100.0);
     glMatrixMode(GL_MODELVIEW);
 }
 
-void mouse(int button, int state, int x, int y) {
-    if (inputMode) return;
+// --- БЛОК ОБРАБОТКИ ВВОДА (ИНТЕРАКТИВ) ---
 
-    if (button == GLUT_LEFT_BUTTON) {
-        if (state == GLUT_DOWN) {
-            mouseRotating = 1;
-            lastMouseX = x;
-            lastMouseY = y;
-        }
-        else {
-            mouseRotating = 0;
-        }
-    }
-    else if (button == 3) { // Scroll up
-        scale *= 1.1f;
-        glutPostRedisplay();
-    }
-    else if (button == 4) { // Scroll down
-        scale *= 0.9f;
-        glutPostRedisplay();
+// Обработка стандартных клавиш клавиатуры
+void keyboard(unsigned char key, int x, int y) {
+    switch (key) {
+        case 27: // Клавиша ESC
+            exit(0);
+            break;
+        case 'f':
+        case 'F': // Переключение функции вперед
+            currentFunctionIndex = (currentFunctionIndex + 1) % totalFunctions;
+            printMenu();
+            glutPostRedisplay(); // Перерисовать окно
+            break;
     }
 }
 
+// Обработка кликов мыши
+void mouse(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_DOWN) {
+            isDragging = 1;
+            lastMouseX = x;
+            lastMouseY = y;
+        } else if (state == GLUT_UP) {
+            isDragging = 0;
+        }
+    }
+}
+
+// Обработка движения мыши с зажатой кнопкой (вращение)
 void motion(int x, int y) {
-    if (mouseRotating && !inputMode) {
-        rotY += (x - lastMouseX) * 0.5f;
-        rotX += (y - lastMouseY) * 0.5f;
+    if (isDragging) {
+        rotationY += (x - lastMouseX) * 0.5f;
+        rotationX += (y - lastMouseY) * 0.5f;
         lastMouseX = x;
         lastMouseY = y;
         glutPostRedisplay();
     }
 }
 
-void keyboard(unsigned char key, int x, int y) {
-    if (inputMode) {
-        if (key == 13) { // Enter
-            inputMode = 0;
-            strcpy(currentFunc.expression, inputBuffer);
-            memset(inputBuffer, 0, MAX_FUNC_LEN);
-            inputPos = 0;
-            computeFunction();
-            printf("New function: %s\n", currentFunc.expression);
-            glutPostRedisplay();
-        }
-        else if (key == 27) { // ESC
-            inputMode = 0;
-            memset(inputBuffer, 0, MAX_FUNC_LEN);
-            inputPos = 0;
-            glutPostRedisplay();
-        }
-        else if (key == 8 && inputPos > 0) { // Backspace
-            inputBuffer[--inputPos] = '\0';
-        }
-        else if (key >= 32 && key <= 126 && inputPos < MAX_FUNC_LEN - 1) {
-            inputBuffer[inputPos++] = key;
-            inputBuffer[inputPos] = '\0';
-        }
-        glutPostRedisplay();
-        return;
+// Обработка колесика мыши (масштабирование) через FreeGLUT расширение
+void mouseWheel(int wheel, int direction, int x, int y) {
+    if (direction > 0) {
+        zoom += 1.0f; // Приближение
+    } else {
+        zoom -= 1.0f; // Отдаление
     }
-
-    switch (key) {
-    case 'f': case 'F':
-        inputMode = 1;
-        memset(inputBuffer, 0, MAX_FUNC_LEN);
-        inputPos = 0;
-        printf("Enter function (available: sin, cos, exp, sqrt, +, -, *, /, ^)\n");
-        printf("Examples: sin(x)*cos(y), x*x - y*y, sin(sqrt(x*x + y*y))\n");
-        glutPostRedisplay();
-        break;
-    case 27: // ESC
-        free(zValues);
-        free(colors);
-        exit(0);
-        break;
-    }
+    glutPostRedisplay();
 }
 
-void initOpenGL() {
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+// --- ИНИЦИАЛИЗАЦИЯ И МЕЙН ---
 
-    GLfloat lightPos[] = { 5.0f, 5.0f, 10.0f, 1.0f };
-    GLfloat lightAmbient[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-    GLfloat lightDiffuse[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-
-    glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
-
-    glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
+void initOpenGL(void) {
+    glClearColor(0.05f, 0.05f, 0.05f, 1.0f); // Темный задний фон
+    glEnable(GL_DEPTH_TEST);                 // Включение буфера глубины
 }
 
 int main(int argc, char** argv) {
+    // Инициализация GLUT
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-    glutInitWindowSize(800, 600);
-    glutCreateWindow("3D Graph Visualization - Interactive Function Input");
+    glutInitWindowSize(1024, 768);
+    glutInitWindowPosition(100, 100);
+    glutCreateWindow("3D Graph Visualizer");
 
-    initOpenGL();
-    initDefaultFunction();
-
+    // Регистрация коллбэков
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
+    glutKeyboardFunc(keyboard);
     glutMouseFunc(mouse);
     glutMotionFunc(motion);
-    glutKeyboardFunc(keyboard);
+    
+    // Специфичный для FreeGLUT (nupengl) коллбэк колесика мыши
+    glutMouseWheelFunc(mouseWheel);
 
-    printf("\n=== 3D Graph Visualizer ===\n");
-    printf("Current function: %s\n", currentFunc.expression);
-    printf("\nControls:\n");
-    printf("  Left mouse button + drag - rotate\n");
-    printf("  Mouse wheel - zoom\n");
-    printf("  F - enter new function\n");
-    printf("  ESC - exit\n");
-    printf("\nAvailable functions in this demo:\n");
-    printf("  sin(x)*cos(y)\n");
-    printf("  x*x - y*y\n");
-    printf("  sin(sqrt(x*x + y*y))\n");
-    printf("  0.5*(x*x + y*y)\n");
-    printf("  exp(-0.5*(x*x+y*y))\n");
-    printf("  sin(x)*sin(y)\n");
-    printf("  x*y\n");
-    printf("  sin(x+y)\n");
+    initOpenGL();
+    printMenu();
 
+    // Запуск главного цикла
     glutMainLoop();
-
-    free(zValues);
-    free(colors);
     return 0;
 }

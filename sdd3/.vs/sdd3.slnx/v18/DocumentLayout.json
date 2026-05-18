@@ -32,7 +32,7 @@
               "RelativeDocumentMoniker": "sdd3.c",
               "ToolTip": "C:\\_pr\\sdd3\\sdd3.c",
               "RelativeToolTip": "sdd3.c",
-              "ViewState": "AgIAAAMAAAAAAAAAAAAAAAoAAAAYAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAA0AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
               "WhenOpened": "2026-03-25T17:48:47.352Z",
               "IsPinned": true,
@@ -46,10 +46,11 @@
               "RelativeDocumentMoniker": "sdd3c.c",
               "ToolTip": "C:\\_pr\\sdd3\\sdd3c.c",
               "RelativeToolTip": "sdd3c.c",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAMcBAAAiAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
               "WhenOpened": "2026-05-11T19:56:58.515Z",
-              "IsPinned": true
+              "IsPinned": true,
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -59,10 +60,11 @@
               "RelativeDocumentMoniker": "backup.c",
               "ToolTip": "C:\\_pr\\sdd3\\backup.c",
               "RelativeToolTip": "backup.c",
-              "ViewState": "AgIAALEBAAAAAAAAAAAgwL0BAAA0AAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
               "WhenOpened": "2026-05-16T09:48:06.278Z",
-              "IsPinned": true
+              "IsPinned": true,
+              "EditorCaption": ""
             }
           ]
         }

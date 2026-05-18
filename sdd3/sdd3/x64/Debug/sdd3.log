@@ -1,20 +1,3 @@
-﻿  backup.c
-  sdd3.c
-  Создание кода...
-C:\_pr\sdd3\sdd3.c(49,23): warning C4244: return: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(56,16): warning C4244: return: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(62,16): warning C4244: return: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(65,23): warning C4244: return: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(71,16): warning C4244: return: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(75,23): warning C4244: return: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(55,19): warning C4244: инициализация: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(180,19): warning C4244: =: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(158,25): warning C4244: инициализация: преобразование "double" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(262,46): warning C4244: функция: преобразование "int" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(268,46): warning C4244: функция: преобразование "int" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(274,49): warning C4244: функция: преобразование "int" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(275,41): warning C4244: функция: преобразование "int" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(280,49): warning C4244: функция: преобразование "int" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(281,45): warning C4244: функция: преобразование "int" в "float", возможна потеря данных
-C:\_pr\sdd3\sdd3.c(401,21): warning C4113: "void (__cdecl *)()" отличается в списках параметров от "void (__cdecl *)(void)"
+﻿  sdd3.c
+C:\_pr\sdd3\sdd3.c(236,5): warning C4013: glutMouseWheelFunc: нет определения; предполагается "extern" с возвратом типа "int"
   sdd3.vcxproj -> C:\_pr\sdd3\x64\Debug\sdd3.exe
