@@ -18,9 +18,6 @@
     <ClCompile Include="sdd3.c">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="sdd3c.c">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
     <ClCompile Include="backup.c">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
