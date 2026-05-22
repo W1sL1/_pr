@@ -1,3 +1,2 @@
 ﻿  _vst.c
-C:\_pr\_vst\_vst.c(4,2): warning C4098: main: функция типа "void", возвращающая значение
   _vst.vcxproj -> C:\_pr\_vst\x64\Debug\_vst.exe
