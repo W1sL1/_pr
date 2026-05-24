@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #define MAX_NODES 1000
 #define INF -1234567 // Метка для NULL
 
@@ -12,7 +11,6 @@ typedef struct Node {
 } Node;
 
 // --- Базовые функции дерева ---
-
 Node* createNode(int value) {
     if (value == INF) return NULL;
     Node* newNode = (Node*)malloc(sizeof(Node));
@@ -38,9 +36,7 @@ int getHeight(Node* root) {
 }
 
 int getSize(Node* root) {
-    if (!root) return 0;
-    return 1 + getSize(root->left) + getSize(root->right);
-}
+    if (!root) return 0; return 1 + getSize(root->left) + getSize(root->right);}
 
 int countLeaves(Node* root) {
     if (!root) return 0;
@@ -58,22 +54,15 @@ void postOrder(Node* root, int* first) {
 }
 
 int getSum(Node* root) {
-    if (!root) return 0;
-    return root->data + getSum(root->left) + getSum(root->right);
-}
+    if (!root) return 0; return root->data + getSum(root->left) + getSum(root->right);}
 
 // --- Вывод поддерева в формате BFS списка ---
-
 void printSubtreeBFS(Node* root) {
     if (!root) return;
-    Node* queue[MAX_NODES];
-    int values[MAX_NODES];
-    int is_null[MAX_NODES];
-    int head = 0, tail = 0;
+    Node* queue[MAX_NODES]; int values[MAX_NODES];
+    int is_null[MAX_NODES]; int head = 0, tail = 0;
     
-    queue[tail++] = root;
-    int count = 0;
-    int last_valid = 0;
+    queue[tail++] = root; int count = 0; int last_valid = 0;
 
     while (head < tail && count < MAX_NODES) {
         Node* curr = queue[head++];
@@ -83,9 +72,7 @@ void printSubtreeBFS(Node* root) {
             last_valid = count;
             queue[tail++] = curr->left;
             queue[tail++] = curr->right;
-        } else {
-            is_null[count] = 1;
-        }
+        } else is_null[count] = 1;
         count++;
     }
 
@@ -116,11 +103,8 @@ void findSubtrees(Node* root, int N, int* count, int mode) {
 }
 
 // --- Парсинг ввода ---
-
 int main() {
-    char buf[1000];
-    int arr[MAX_NODES];
-    int n = 0, N_val;
+    char buf[1000]; int arr[MAX_NODES]; int n = 0, N_val;
 
     // Считывание массива
     if (fgets(buf, sizeof(buf), stdin)) {
@@ -134,27 +118,20 @@ int main() {
 
     // Считывание N (игнорируя букву N если она есть)
     char n_pref[2];
-    if (scanf("%s %d", n_pref, &N_val) != 2) {
-        // Если ввели просто число
-        N_val = atoi(n_pref);
-    }
-
+    if (scanf("%s %d", n_pref, &N_val) != 2) N_val = atoi(n_pref);
     Node* root = buildTree(arr, n, 0);
 
     // Вывод согласно формату
     printf("Tree height: %d\n", getHeight(root));
     printf("Tree size: %d\n", getSize(root));
     printf("Leaf count: %d\n", countLeaves(root));
-    
     printf("Post-order traversal: [");
     int first = 1;
     postOrder(root, &first);
     printf("]\n");
-
     int subtreeCount = 0;
     findSubtrees(root, N_val, &subtreeCount, 0); // Первый проход: считаем
     printf("The subtrees: %d\n", subtreeCount);
     findSubtrees(root, N_val, NULL, 1);          // Второй проход: печатаем
-
     return 0;
 }
