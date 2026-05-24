@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include <errno.h>
 
-/* Для старых MSVC */
+// Для старых MSVC 
 #ifdef _MSC_VER
 #if _MSC_VER < 1900
 #define snprintf _snprintf
@@ -12,7 +12,7 @@
 #endif
 
 #define INITIAL_BUF 4096
-#define MAX_CANVAS_WIDTH 180  /* ограничение ширины для компактного вывода */
+#define MAX_CANVAS_WIDTH 180  // ограничение ширины для компактного вывода 
 
 typedef struct Node {
     long long val;
@@ -20,7 +20,7 @@ typedef struct Node {
     struct Node *right;
 } Node;
 
-/* ---------- Утилиты ---------- */
+// ---------- Утилиты ---------- 
 
 static char *trim(char *s) {
     while (isspace((unsigned char)*s)) s++;
@@ -64,7 +64,7 @@ static int tree_height(Node *root) {
     }
 }
 
-/* Совместимый парсинг long long для старого MSVC */
+// Совместимый парсинг long long для старого MSVC 
 static int parse_ll(const char *s, long long *out) {
     char *endp = NULL;
 
@@ -74,16 +74,16 @@ static int parse_ll(const char *s, long long *out) {
     long long v = strtoll(s, &endp, 10);
 #endif
 
-    if (s == endp) return 0; /* не было цифр */
+    if (s == endp) return 0; // не было цифр 
 
     while (*endp && isspace((unsigned char)*endp)) endp++;
-    if (*endp != '\0') return 0; /* лишние символы */
+    if (*endp != '\0') return 0; // лишние символы 
 
     *out = (long long)v;
     return 1;
 }
 
-/* ---------- Динамические массивы парсинга ---------- */
+// ---------- Динамические массивы парсинга ---------- 
 
 typedef struct {
     long long *values;
@@ -124,7 +124,7 @@ static void parsed_free(Parsed *p) {
     free(p->is_null);
 }
 
-/* ---------- Рисование на полотне ---------- */
+// ---------- Рисование на полотне ---------- 
 
 static void put_str(char **canvas, int rows, int cols, int r, int c, const char *s) {
     int len;
@@ -168,10 +168,10 @@ static void draw_tree(Node *node, char **canvas, int rows, int cols, int r, int 
 
         if (lmid < left) lmid = left;
 
-        /* Слеш прямо над левым ребенком */
+        // Слеш прямо над левым ребенком 
         bcol = lmid;
 
-        /* Горизонтальная линия '_' от ребенка к родителю */
+        // Горизонтальная линия '_' от ребенка к родителю 
         for (x = lmid + 1; x < mid; x++) {
             if (r >= 0 && r < rows && x >= 0 && x < cols && canvas[r][x] == ' ')
                 canvas[r][x] = '_';
@@ -187,10 +187,10 @@ static void draw_tree(Node *node, char **canvas, int rows, int cols, int r, int 
 
         if (rmid > right) rmid = right;
 
-        /* Бэкслеш прямо над правым ребенком */
+        // Бэкслеш прямо над правым ребенком 
         bcol = rmid;
 
-        /* Горизонтальная линия '_' от родителя к ребенку */
+        // Горизонтальная линия '_' от родителя к ребенку 
         for (x = mid + 1; x < rmid; x++) {
             if (r >= 0 && r < rows && x >= 0 && x < cols && canvas[r][x] == ' ')
                 canvas[r][x] = '_';
@@ -215,7 +215,7 @@ static void print_canvas(char **canvas, int rows, int cols) {
     }
 }
 
-/* ---------- main ---------- */
+// ---------- main ---------- 
 
 int main(void) {
     char *input = (char *)malloc(INITIAL_BUF);
@@ -252,8 +252,8 @@ int main(void) {
         return 1;
     }
 
-    s[len - 1] = '\0'; /* remove ']' */
-    s++;               /* skip '[' */
+    s[len - 1] = '\0'; // remove ']' 
+    s++;               // skip '[' 
 
     parsed_init(&p);
 
@@ -315,7 +315,7 @@ int main(void) {
     rows = h * 2 - 1;
     if (rows < 1) rows = 1;
 
-    /* Базовая ширина + ограничение для компактности */
+    // Базовая ширина + ограничение для компактности 
     cols = 1 << (h + 1);
     if (cols < 40) cols = 40;
     if (cols > MAX_CANVAS_WIDTH) cols = MAX_CANVAS_WIDTH;
@@ -347,16 +347,14 @@ int main(void) {
         canvas[r][cols] = '\0';
     }
 
-    /* min_gap=3 -> чуть "воздушнее", подчеркивания выглядят лучше */
+    // min_gap=3 -> чуть "воздушнее", подчеркивания выглядят лучше 
     draw_tree(root, canvas, rows, cols, 0, 0, cols - 1, 3);
     print_canvas(canvas, rows, cols);
-
     for (r = 0; r < rows; r++) free(canvas[r]);
     free(canvas);
     free_tree(root);
     free(nodes);
     parsed_free(&p);
     free(input);
-
     return 0;
 }
