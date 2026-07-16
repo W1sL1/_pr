@@ -1,0 +1,5 @@
+c:\_pr\asm\1.temp.asm(2) : Error A2096: Model is not declared
+c:\_pr\asm\1.temp.asm(3) : Error A2082: Must be in segment block
+c:\_pr\asm\1.temp.asm(4) : Error A2082: Must be in segment block
+c:\_pr\asm\1.temp.asm(5) : Error A2082: Must be in segment block
+c:\_pr\asm\1.temp.asm(6) : Error A2142: Unmatched block nesting: main
