@@ -1,0 +1,11 @@
+shw EIP
+mov EAX 0xffffffff
+shw EAX
+add AH 0x1
+shw EAX
+mov EDX 0x1234
+sub EDX EDX
+shw EDX
+mov DX EAX
+shw EDX
+shw EIP
