@@ -236,7 +236,7 @@ int main(void) {
         return 1;
     }
 
-    printf("Введите список в формате [1, 2, 3, NULL, 5]:\n");
+    printf("Enter like [1, 2, 3, NULL, 5]:\n");
     if (!fgets(input, INITIAL_BUF, stdin)) {
         fprintf(stderr, "Ошибка чтения.\n");
         free(input);
