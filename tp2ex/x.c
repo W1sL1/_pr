@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <errno.h>
 
+// [19, 18, 32, 15, NULL, 25, 53, 13, 17, NULL, NULL, 23, 27, 35, 60, 3, 14, 16, NULL, NULL, NULL, NULL, NULL, 20, 24, 26, 31, 34, 51, 56, 61, 1, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 21, NULL, NULL, NULL, NULL, 30, NULL, 33, NULL, 48, 52, 55, 58, NULL, 62]
+
 // Для старых MSVC 
 #ifdef _MSC_VER
 #if _MSC_VER < 1900
@@ -20,7 +22,7 @@ typedef struct Node {
     struct Node *right;
 } Node;
 
-// ---------- Утилиты ---------- 
+// Утилиты всякие 
 
 static char *trim(char *s) {
     while (isspace((unsigned char)*s)) s++;
@@ -40,19 +42,15 @@ static int is_null_token(const char *s) {
 static Node *new_node(long long v) {
     Node *n = (Node *)malloc(sizeof(Node));
     if (!n) {
-        fprintf(stderr, "Ошибка: не хватает памяти.\n");
+        fprintf(stderr, "Not enough memory.\n");
         exit(1);
     }
-    n->val = v;
-    n->left = n->right = NULL;
-    return n;
+    n->val = v; n->left = n->right = NULL; return n;
 }
 
 static void free_tree(Node *root) {
     if (!root) return;
-    free_tree(root->left);
-    free_tree(root->right);
-    free(root);
+    free_tree(root->left); free_tree(root->right); free(root);
 }
 
 static int tree_height(Node *root) {
@@ -83,7 +81,7 @@ static int parse_ll(const char *s, long long *out) {
     return 1;
 }
 
-// ---------- Динамические массивы парсинга ---------- 
+// Динамические массивы парсинга 
 
 typedef struct {
     long long *values;
@@ -105,9 +103,7 @@ static void parsed_push(Parsed *p, long long v, unsigned char nul) {
         long long *nv = (long long *)realloc(p->values, ncap * sizeof(long long));
         unsigned char *nn = (unsigned char *)realloc(p->is_null, ncap * sizeof(unsigned char));
         if (!nv || !nn) {
-            free(nv);
-            free(nn);
-            fprintf(stderr, "Ошибка памяти.\n");
+            free(nv); free(nn); fprintf(stderr, "Storage err.\n");
             exit(1);
         }
         p->values = nv;
@@ -120,16 +116,13 @@ static void parsed_push(Parsed *p, long long v, unsigned char nul) {
 }
 
 static void parsed_free(Parsed *p) {
-    free(p->values);
-    free(p->is_null);
+    free(p->values); free(p->is_null);
 }
 
-// ---------- Рисование на полотне ---------- 
+// Рисование на полотне 
 
 static void put_str(char **canvas, int rows, int cols, int r, int c, const char *s) {
-    int len;
-    int start;
-    int i;
+    int len; int start; int i;
 
     if (r < 0 || r >= rows) return;
     len = (int)strlen(s);
@@ -215,41 +208,28 @@ static void print_canvas(char **canvas, int rows, int cols) {
     }
 }
 
-// ---------- main ---------- 
+// Мэйник 
 
 int main(void) {
     char *input = (char *)malloc(INITIAL_BUF);
-    char *s;
-    size_t len;
-    Parsed p;
-    char *token;
-    Node **nodes;
-    Node *root;
-    int h;
-    int rows;
-    int cols;
-    char **canvas;
-    int r;
+    char *s; size_t len; Parsed p;
+    char *token; Node **nodes; Node *root;
+    int h; int rows; int cols; char **canvas; int r;
 
     if (!input) {
-        fprintf(stderr, "Ошибка памяти.\n");
-        return 1;
+        fprintf(stderr, "Storage err.\n"); return 1;
     }
 
     printf("Enter like [1, 2, 3, NULL, 5]:\n");
+
     if (!fgets(input, INITIAL_BUF, stdin)) {
-        fprintf(stderr, "Ошибка чтения.\n");
-        free(input);
-        return 1;
+        fprintf(stderr, "Read err.\n"); free(input); return 1;
     }
 
-    s = trim(input);
-    len = strlen(s);
+    s = trim(input); len = strlen(s);
 
     if (len < 2 || s[0] != '[' || s[len - 1] != ']') {
-        fprintf(stderr, "Неверный формат. Ожидается [ ... ]\n");
-        free(input);
-        return 1;
+        fprintf(stderr, "Format err.\n"); free(input); return 1;
     }
 
     s[len - 1] = '\0'; // remove ']' 
@@ -266,10 +246,8 @@ int main(void) {
         } else {
             long long v;
             if (!parse_ll(t, &v)) {
-                fprintf(stderr, "Некорректное число: %s\n", t);
-                parsed_free(&p);
-                free(input);
-                return 1;
+                fprintf(stderr, "NOcorrect num: %s\n", t);
+                parsed_free(&p); free(input); return 1;
             }
             parsed_push(&p, v, 0);
         }
@@ -278,18 +256,14 @@ int main(void) {
     }
 
     if (p.size == 0 || p.is_null[0]) {
-        printf("Пустое дерево.\n");
-        parsed_free(&p);
-        free(input);
-        return 0;
+        printf("Hollow tree.\n");
+        parsed_free(&p); free(input); return 0;
     }
 
     nodes = (Node **)calloc(p.size, sizeof(Node *));
     if (!nodes) {
-        fprintf(stderr, "Ошибка памяти.\n");
-        parsed_free(&p);
-        free(input);
-        return 1;
+        fprintf(stderr, "Storage err.\n");
+        parsed_free(&p); free(input); return 1;
     }
 
     {
@@ -322,26 +296,19 @@ int main(void) {
 
     canvas = (char **)malloc((size_t)rows * sizeof(char *));
     if (!canvas) {
-        fprintf(stderr, "Ошибка памяти.\n");
-        free_tree(root);
-        free(nodes);
-        parsed_free(&p);
-        free(input);
-        return 1;
+        fprintf(stderr, "Storage err.\n");
+        free_tree(root); free(nodes); parsed_free(&p);
+        free(input); return 1;
     }
 
     for (r = 0; r < rows; r++) {
         canvas[r] = (char *)malloc((size_t)cols + 1);
         if (!canvas[r]) {
             int k;
-            fprintf(stderr, "Ошибка памяти.\n");
+            fprintf(stderr, "Storage err.\n");
             for (k = 0; k < r; k++) free(canvas[k]);
-            free(canvas);
-            free_tree(root);
-            free(nodes);
-            parsed_free(&p);
-            free(input);
-            return 1;
+            free(canvas); free_tree(root); free(nodes);
+            parsed_free(&p); free(input); return 1;
         }
         memset(canvas[r], ' ', (size_t)cols);
         canvas[r][cols] = '\0';
@@ -351,10 +318,6 @@ int main(void) {
     draw_tree(root, canvas, rows, cols, 0, 0, cols - 1, 3);
     print_canvas(canvas, rows, cols);
     for (r = 0; r < rows; r++) free(canvas[r]);
-    free(canvas);
-    free_tree(root);
-    free(nodes);
-    parsed_free(&p);
-    free(input);
-    return 0;
+    free(canvas); free_tree(root); free(nodes);
+    parsed_free(&p); free(input); return 0;
 }
