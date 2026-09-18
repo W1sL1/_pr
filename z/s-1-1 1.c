@@ -16,5 +16,5 @@ int main() {
 
     return 0;
 }
-// дал мне пример кода си, там: union u [int x int y insigned int z]    union.u[1] = - 1   3 prinf(s s s x y z)
+// пример кода си, там: union u [int x int y insigned int z]    union.u[1] = - 1   3 prinf(s s s x y z)
 // тип там беззнаковый инт есть , ответ - 1 - 1 1
