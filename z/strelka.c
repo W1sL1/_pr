@@ -4,7 +4,7 @@ struct Point {
     int y;
 };
 int main() {
-    struct Point myPoint; // Сама структура
+    struct Point myPoint; // Выделяем память 
     struct Point *ptr;    // Указатель на структуру
     ptr = &myPoint;       // Записали адрес структуры в указатель
     // 1. Работаем напрямую через точку
